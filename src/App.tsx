@@ -22,7 +22,7 @@ interface TerminalEvent {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"adb" | "fastboot" | "flash">("adb");
+  const [activeTab, setActiveTab] = useState<"adb" | "fastboot" | "flash" | "unlock" | "program" | "tools">("adb");
   const [logs, setLogs] = useState<TerminalEvent[]>([]);
   const [shellCmd, setShellCmd] = useState("");
   const [fbShellCmd, setFbShellCmd] = useState("");
@@ -35,6 +35,11 @@ export default function App() {
   const [firmwareDir, setFirmwareDir] = useState("");
   const [flashPlan, setFlashPlan] = useState<{name: string, status: string}[]>([]);
   const [currentStep, setCurrentStep] = useState(-1);
+
+  // Phase 5 State
+  const [unlockToken, setUnlockToken] = useState("");
+  const [payloadFile, setPayloadFile] = useState("");
+  const [scatterFile, setScatterFile] = useState("");
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -225,24 +230,24 @@ export default function App() {
         </div>
         
         {/* Basic Tabs */}
-        <div className="flex gap-2">
-          <Button 
-            variant={activeTab === "adb" ? "default" : "outline"} 
-            onClick={() => setActiveTab("adb")}
-          >
-            ADB Module
+        <div className="flex gap-2 flex-wrap">
+          <Button variant={activeTab === "adb" ? "default" : "outline"} onClick={() => setActiveTab("adb")} size="sm">
+            ADB
           </Button>
-          <Button 
-            variant={activeTab === "fastboot" ? "default" : "outline"} 
-            onClick={() => setActiveTab("fastboot")}
-          >
-            Fastboot Module
+          <Button variant={activeTab === "fastboot" ? "default" : "outline"} onClick={() => setActiveTab("fastboot")} size="sm">
+            Fastboot
           </Button>
-          <Button 
-            variant={activeTab === "flash" ? "default" : "outline"} 
-            onClick={() => setActiveTab("flash")}
-          >
-            Firmware Flasher
+          <Button variant={activeTab === "flash" ? "default" : "outline"} onClick={() => setActiveTab("flash")} size="sm">
+            Firmware
+          </Button>
+          <Button variant={activeTab === "unlock" ? "default" : "outline"} onClick={() => setActiveTab("unlock")} size="sm">
+            Unlock/Root
+          </Button>
+          <Button variant={activeTab === "program" ? "default" : "outline"} onClick={() => setActiveTab("program")} size="sm">
+            Program
+          </Button>
+          <Button variant={activeTab === "tools" ? "default" : "outline"} onClick={() => setActiveTab("tools")} size="sm">
+            Tools
           </Button>
         </div>
 
@@ -465,6 +470,158 @@ export default function App() {
                   </CardContent>
                 </Card>
               )}
+            </>
+          )}
+
+          {activeTab === "unlock" && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5"/> Bootloader Unlock Wizard</CardTitle>
+                  <CardDescription className="text-warning font-bold">WARNING: Unlocking will wipe all user data!</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="bg-muted px-2 py-1 rounded text-sm w-6 text-center">1</span>
+                    <span className="text-sm">Enable Developer Options and "OEM Unlocking" in Android Settings.</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-muted px-2 py-1 rounded text-sm w-6 text-center">2</span>
+                    <Button variant="outline" size="sm" onClick={() => handleExecuteSidecar("adb", ["reboot", "bootloader"], "t_ul_reboot", "adb reboot bootloader")}>Reboot to Bootloader</Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-muted px-2 py-1 rounded text-sm w-6 text-center">3</span>
+                    <Button variant="destructive" size="sm" onClick={() => handleStreamSidecar("fastboot", ["flashing", "unlock"], "t_ul_unlock", "fastboot flashing unlock")}>Execute Flashing Unlock</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Token-Based Unlock (Vendor Specific)</CardTitle>
+                </CardHeader>
+                <CardContent className="flex gap-2">
+                  <Input 
+                    placeholder="Enter unlock token file or code..." 
+                    value={unlockToken} 
+                    onChange={(e) => setUnlockToken(e.target.value)} 
+                    className="flex-1" 
+                  />
+                  <Button disabled={!unlockToken} onClick={() => handleStreamSidecar("fastboot", ["flash", "unlock", unlockToken], "t_ul_token", `fastboot flash unlock ${unlockToken}`)}>Flash Token</Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Custom Recovery / Magisk Patcher</CardTitle>
+                  <CardDescription>Quick flash for patched boot or custom recovery images.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-2">
+                   <div className="flex gap-2">
+                     <Button className="flex-1" variant="secondary" onClick={() => addLog("Please use the file picker (coming soon) to select your recovery.img.", "info", "t_ul_helper")}>Select recovery.img</Button>
+                     <Button disabled>Flash Recovery</Button>
+                   </div>
+                   <div className="flex gap-2">
+                     <Button className="flex-1" variant="secondary" onClick={() => addLog("Please use the file picker (coming soon) to select your magisk_patched.img.", "info", "t_ul_helper")}>Select magisk_boot.img</Button>
+                     <Button disabled>Flash Boot</Button>
+                   </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {activeTab === "program" && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5"/> Scatter & Partition Map</CardTitle>
+                  <CardDescription>Multi-image flashing queue.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="flex gap-2">
+                    <Input 
+                      placeholder="Load Scatter (.txt) or Partition Map (.json)..." 
+                      value={scatterFile} 
+                      onChange={(e) => setScatterFile(e.target.value)} 
+                      className="flex-1" 
+                    />
+                    <Button variant="secondary" onClick={() => addLog(`Loading map from ${scatterFile}`, "info", "t_pgm")}>Load Map</Button>
+                  </div>
+                  
+                  {/* Mock Table */}
+                  <div className="border rounded-md bg-muted/30">
+                    <table className="w-full text-sm text-left">
+                      <thead className="border-b bg-muted/50">
+                        <tr>
+                          <th className="p-2"><input type="checkbox" checked readOnly /></th>
+                          <th className="p-2">Partition</th>
+                          <th className="p-2">File</th>
+                          <th className="p-2">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b">
+                          <td className="p-2"><input type="checkbox" checked readOnly /></td>
+                          <td className="p-2">boot</td>
+                          <td className="p-2 font-mono text-muted-foreground">boot.img</td>
+                          <td className="p-2">Ready</td>
+                        </tr>
+                        <tr>
+                          <td className="p-2"><input type="checkbox" checked readOnly /></td>
+                          <td className="p-2">system</td>
+                          <td className="p-2 font-mono text-muted-foreground">system.img</td>
+                          <td className="p-2">Ready</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="flex gap-2 justify-end mt-2">
+                    <Button variant="outline">Save Profile JSON</Button>
+                    <Button>Flash Checked Partitions</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {activeTab === "tools" && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5"/> Payload.bin Extractor</CardTitle>
+                  <CardDescription>Extract OTA payload.bin files to raw flashable images.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-2">
+                   <Input 
+                      placeholder="Select payload.bin..." 
+                      value={payloadFile} 
+                      onChange={(e) => setPayloadFile(e.target.value)} 
+                    />
+                   <Button disabled={!payloadFile} className="w-full">Extract Payload</Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Driver Diagnostics</CardTitle>
+                  <CardDescription>Install and fix ADB / Fastboot / VCOM USB drivers.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-2">
+                   <Button variant="secondary" onClick={() => addLog("Installing Google USB Drivers...", "info", "t_tools")}>Install Universal ADB Driver</Button>
+                   <Button variant="secondary" onClick={() => addLog("Scanning registry for driver conflicts...", "info", "t_tools")}>Fix Device Not Recognized</Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Partition Backup</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-2">
+                   <Button variant="outline" onClick={() => handleStreamSidecar("adb", ["pull", "/dev/block/bootdevice/by-name/persist", "persist.img"], "t_tools", "adb pull persist")}>Backup Persist (Needs Root)</Button>
+                   <Button variant="outline" onClick={() => handleStreamSidecar("adb", ["pull", "/dev/block/bootdevice/by-name/modemst1", "modemst1.img"], "t_tools", "adb pull modemst1")}>Backup EFS (Needs Root)</Button>
+                </CardContent>
+              </Card>
             </>
           )}
         </div>
