@@ -274,8 +274,7 @@ export default function App() {
       {/* Navigation Tabs */}
       <div className="flex items-center gap-1 overflow-x-auto border-b border-slate-800 bg-[#161925] px-4 py-2 scrollbar-none">
         {[
-          { id: "adb", label: "ADB", icon: Activity },
-          { id: "fastboot", label: "Fastboot", icon: Zap },
+          { id: "adb", label: "ADB & Fastboot", icon: Activity },
           { id: "flash", label: "Firmware", icon: DownloadCloud },
           { id: "unlock", label: "Unlock & Root", icon: ShieldCheck },
           { id: "program", label: "Program", icon: Cpu },
@@ -310,48 +309,123 @@ export default function App() {
           {activeTab === "adb" && (
             <>
               <Card className="bg-[#161925] border-slate-800 shadow-lg">
-                <CardHeader className="pb-3 border-b border-slate-800/50">
-                  <CardTitle className="flex items-center gap-2 text-white"><Smartphone className="h-5 w-5 text-cyan-400"/> Device Info</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                    <div className="flex flex-col gap-1"><span className="text-slate-500 text-xs font-semibold uppercase">Model</span> <span className="font-mono text-slate-200">{deviceInfo.model}</span></div>
-                    <div className="flex flex-col gap-1"><span className="text-slate-500 text-xs font-semibold uppercase">Brand</span> <span className="font-mono text-slate-200">{deviceInfo.brand}</span></div>
-                    <div className="flex flex-col gap-1"><span className="text-slate-500 text-xs font-semibold uppercase">Android</span> <span className="font-mono text-slate-200">{deviceInfo.androidVersion}</span></div>
-                    <div className="flex flex-col gap-1"><span className="text-slate-500 text-xs font-semibold uppercase">Battery</span> <span className="font-mono text-emerald-400">{deviceInfo.battery}</span></div>
+                <CardHeader className="pb-3 border-b border-slate-800/50 flex flex-row items-center justify-between">
+                  <div className="flex flex-col">
+                    <CardTitle className="flex items-center gap-2 text-white"><Smartphone className="h-5 w-5 text-emerald-500" fill="currentColor"/> <span className="tracking-wide">A D B</span></CardTitle>
+                    <CardDescription className="text-slate-500 text-xs mt-1">Android Debug Bridge</CardDescription>
                   </div>
-                  <Button onClick={fetchDeviceInfo} disabled={isRunning} className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-semibold">
-                    Refresh Device Info
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-[#161925] border-slate-800 shadow-lg">
-                <CardHeader className="pb-3 border-b border-slate-800/50">
-                  <CardTitle className="flex items-center gap-2 text-white"><Activity className="h-5 w-5 text-purple-400"/> ADB Reboot Menu</CardTitle>
+                  <div className="flex gap-2">
+                     <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-md">
+                        <Smartphone className="h-3.5 w-3.5 mr-2" fill="currentColor"/> ADB
+                     </Button>
+                     <Button variant="outline" size="sm" className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700" onClick={() => setActiveTab("fastboot")}>
+                        <Zap className="h-3.5 w-3.5 mr-2"/> Fastboot
+                     </Button>
+                  </div>
                 </CardHeader>
-                <CardContent className="pt-4 flex flex-wrap gap-3">
-                  <Button onClick={() => handleAdbReboot("system")} disabled={isRunning} className="bg-slate-700 hover:bg-slate-600 text-white border-none">System</Button>
-                  <Button onClick={() => handleAdbReboot("recovery")} disabled={isRunning} className="bg-slate-700 hover:bg-slate-600 text-white border-none">Recovery</Button>
-                  <Button onClick={() => handleAdbReboot("bootloader")} disabled={isRunning} className="bg-slate-700 hover:bg-slate-600 text-white border-none">Bootloader</Button>
-                  <Button onClick={() => handleAdbReboot("fastboot")} disabled={isRunning} className="bg-slate-700 hover:bg-slate-600 text-white border-none">Fastbootd</Button>
-                  <Button onClick={() => handleAdbReboot("edl")} disabled={isRunning} className="bg-red-500/20 text-red-400 hover:bg-red-500/30 border-none">EDL</Button>
-                </CardContent>
-              </Card>
+                <CardContent className="pt-6 flex flex-col gap-6">
+                  
+                  {/* Reboot Row */}
+                  <div className="flex items-center gap-4">
+                    <span className="w-20 text-sm font-medium text-slate-400">Reboot:</span>
+                    <select 
+                      className="w-[180px] bg-[#222532] border border-slate-700 text-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                      onChange={(e) => {
+                         if(e.target.value) handleAdbReboot(e.target.value);
+                      }}
+                    >
+                      <option value="">Normal</option>
+                      <option value="recovery">Recovery</option>
+                      <option value="bootloader">Bootloader</option>
+                      <option value="fastboot">Fastbootd</option>
+                      <option value="edl">EDL</option>
+                    </select>
+                    <Button 
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-md" 
+                      disabled={isRunning}
+                    >
+                      ► Execute
+                    </Button>
+                    <div className="flex-1"></div>
+                    <Button 
+                      className="bg-cyan-500 hover:bg-cyan-600 text-white border-none shadow-md" 
+                      onClick={fetchDeviceInfo} 
+                      disabled={isRunning}
+                    >
+                      <Activity className="h-4 w-4 mr-1.5"/> Check
+                    </Button>
+                  </div>
 
-              <Card className="bg-[#161925] border-slate-800 shadow-lg">
-                <CardHeader className="pb-3 border-b border-slate-800/50">
-                  <CardTitle className="flex items-center gap-2 text-white"><TerminalIcon className="h-5 w-5 text-emerald-400"/> Shell Command</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4 flex gap-2">
-                  <Input
-                    value={shellCmd}
-                    onChange={(e) => setShellCmd(e.target.value)}
-                    placeholder="e.g. ls -la /sdcard"
-                    className="flex-1 bg-[#0f111a] border-slate-700 text-slate-200 placeholder:text-slate-600 focus-visible:ring-cyan-500"
-                    onKeyDown={(e) => e.key === "Enter" && handleAdbShell()}
-                  />
-                  <Button onClick={handleAdbShell} disabled={isRunning || !shellCmd} className="bg-emerald-500 hover:bg-emerald-600 text-white">Run</Button>
+                  {/* Install APK Row */}
+                  <div className="flex items-center gap-4">
+                    <span className="w-20 text-sm font-medium text-slate-400">Install APK:</span>
+                    <select className="w-[180px] bg-[#222532] border border-slate-700 text-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                      <option>Select APK</option>
+                    </select>
+                    <div className="flex gap-2">
+                       <Button className="bg-purple-600 hover:bg-purple-700 text-white border-none shadow-sm" disabled={isRunning}>
+                         <svg className="h-3.5 w-3.5 mr-1.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg> Custom
+                       </Button>
+                       <Button className="bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-md" disabled={isRunning}>
+                         <DownloadCloud className="h-3.5 w-3.5 mr-1.5"/> Install
+                       </Button>
+                    </div>
+                  </div>
+
+                  {/* Quick Actions Row */}
+                  <div className="flex items-center gap-4">
+                    <span className="w-20 text-sm font-medium text-slate-400">Quick:</span>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button className="bg-orange-500 hover:bg-orange-600 text-white border-none shadow-sm" disabled={isRunning}>
+                        <Activity className="h-3.5 w-3.5 mr-1.5"/> Server v
+                      </Button>
+                      <Button className="bg-purple-600 hover:bg-purple-700 text-white border-none shadow-sm" disabled={isRunning}>
+                        <Zap className="h-3.5 w-3.5 mr-1.5"/> Fix Corrupt
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Sideload Row */}
+                  <div className="flex items-center gap-4">
+                    <span className="w-20 text-sm font-medium text-slate-400">Sideload:</span>
+                    <div className="flex-1 relative max-w-[250px]">
+                       <Input 
+                         placeholder="No file..." 
+                         readOnly
+                         className="bg-[#222532] border-slate-700 pr-10 text-slate-200 placeholder:text-slate-600 focus-visible:ring-cyan-500 h-[38px]"
+                       />
+                       <button className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+                       </button>
+                    </div>
+
+                    <div className="flex gap-2">
+                       <Button variant="outline" className="bg-purple-600 hover:bg-purple-700 text-white border-none shadow-sm h-[38px]">
+                         <svg className="h-4 w-4 mr-1.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg> Select
+                       </Button>
+                       <Button className="bg-emerald-500 hover:bg-emerald-600 text-white min-w-[100px] shadow-md border-none h-[38px]">
+                         <Zap className="h-4 w-4 mr-1.5" fill="currentColor"/> Flash
+                       </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Raw Command */}
+                  <div className="flex gap-2 mt-4 items-center">
+                     <div className="bg-emerald-500 text-white px-3 py-2 rounded-md font-bold text-sm tracking-wide flex items-center justify-center">
+                       adb
+                     </div>
+                     <Input
+                        value={shellCmd}
+                        onChange={(e) => setShellCmd(e.target.value)}
+                        placeholder="command..."
+                        className="flex-1 bg-[#222532] border-slate-700 text-slate-200 placeholder:text-slate-600 focus-visible:ring-cyan-500 h-[40px]"
+                        onKeyDown={(e) => e.key === "Enter" && handleAdbShell()}
+                      />
+                      <Button onClick={handleAdbShell} disabled={isRunning || !shellCmd} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 h-[40px] font-bold tracking-wide border-none">
+                         Run
+                      </Button>
+                  </div>
+
                 </CardContent>
               </Card>
             </>
@@ -366,7 +440,7 @@ export default function App() {
                     <CardDescription className="text-slate-500 text-xs mt-1">Bootloader Flash Mode</CardDescription>
                   </div>
                   <div className="flex gap-2">
-                     <Button variant="outline" size="sm" className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700">
+                     <Button variant="outline" size="sm" className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700" onClick={() => setActiveTab("adb")}>
                         <TerminalIcon className="h-3.5 w-3.5 mr-2"/> ADB
                      </Button>
                      <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white border-none shadow-md">
