@@ -22,7 +22,7 @@ interface TerminalEvent {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"adb" | "fastboot">("adb");
+  const [activeTab, setActiveTab] = useState<"adb" | "fastboot" | "flash">("adb");
   const [logs, setLogs] = useState<TerminalEvent[]>([]);
   const [shellCmd, setShellCmd] = useState("");
   const [fbShellCmd, setFbShellCmd] = useState("");
@@ -30,6 +30,12 @@ export default function App() {
   const [disableVerity, setDisableVerity] = useState(false);
   const [flashFile, setFlashFile] = useState("");
   const [isRunning, setIsRunning] = useState(false);
+  
+  // Phase 4 State
+  const [firmwareDir, setFirmwareDir] = useState("");
+  const [flashPlan, setFlashPlan] = useState<{name: string, status: string}[]>([]);
+  const [currentStep, setCurrentStep] = useState(-1);
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Device Info State
@@ -117,6 +123,50 @@ export default function App() {
     handleStreamSidecar("fastboot", args, "t_fb_flash", args.join(" "));
   };
 
+  // Phase 4: Task Engine Mock
+  const generateFlashPlan = () => {
+    if (!firmwareDir) return;
+    addLog(`Parsed firmware directory: ${firmwareDir}`, "info", "t_engine");
+    setFlashPlan([
+      { name: "Pre-flight Check (Battery, Storage)", status: "pending" },
+      { name: "Verify Bootloader Unlock State", status: "pending" },
+      { name: "Flash boot.img", status: "pending" },
+      { name: "Flash vendor_boot.img", status: "pending" },
+      { name: "Flash super.img", status: "pending" },
+      { name: "Format Data (-w)", status: "pending" },
+      { name: "Reboot System", status: "pending" },
+    ]);
+  };
+
+  const executeFlashPlan = async () => {
+    if (isRunning || flashPlan.length === 0) return;
+    setIsRunning(true);
+    addLog("--- STARTED FIRMWARE FLASH JOB ---", "info", "t_engine");
+    
+    let updatedPlan = [...flashPlan];
+    
+    for (let i = 0; i < updatedPlan.length; i++) {
+      setCurrentStep(i);
+      updatedPlan[i].status = "running";
+      setFlashPlan([...updatedPlan]);
+      
+      // Mock execution delay
+      addLog(`Executing: ${updatedPlan[i].name}...`, "cmd", "t_engine");
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      
+      updatedPlan[i].status = "done";
+      setFlashPlan([...updatedPlan]);
+      addLog(`Completed: ${updatedPlan[i].name}`, "info", "t_engine");
+    }
+    
+    setCurrentStep(-1);
+    setIsRunning(false);
+    addLog("--- FIRMWARE FLASH JOB FINISHED ---", "info", "t_engine");
+    
+    // Log history to simulated SQLite
+    addLog("Job history logged to SQLite database.", "info", "t_engine");
+  };
+
   // ADB Commands
   const handleAdbShell = () => {
     if (!shellCmd) return;
@@ -187,6 +237,12 @@ export default function App() {
             onClick={() => setActiveTab("fastboot")}
           >
             Fastboot Module
+          </Button>
+          <Button 
+            variant={activeTab === "flash" ? "default" : "outline"} 
+            onClick={() => setActiveTab("flash")}
+          >
+            Firmware Flasher
           </Button>
         </div>
 
@@ -348,6 +404,67 @@ export default function App() {
                   <Button onClick={handleFbShell} disabled={isRunning || !fbShellCmd}>Run</Button>
                 </CardContent>
               </Card>
+            </>
+          )}
+
+          {activeTab === "flash" && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5"/> Firmware Flasher (Task Engine)</CardTitle>
+                  <CardDescription>
+                    Safely flash firmware packages with pre-flight checks and automated sequences.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="flex gap-2">
+                    <Input 
+                      placeholder="Select Firmware Directory..."
+                      value={firmwareDir}
+                      onChange={(e) => setFirmwareDir(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button onClick={generateFlashPlan} disabled={isRunning || !firmwareDir} variant="secondary">
+                      Load Firmware
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {flashPlan.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Flash Plan Preview</CardTitle>
+                    <CardDescription>Review the execution order and pre-flight checks.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-col gap-2 mb-4 bg-muted/50 p-4 rounded-md border text-sm">
+                      {flashPlan.map((step, idx) => (
+                        <div key={idx} className="flex justify-between items-center">
+                          <span className={currentStep === idx ? "text-primary font-bold" : "text-muted-foreground"}>
+                            {idx + 1}. {step.name}
+                          </span>
+                          <span className={
+                            step.status === "done" ? "text-success font-bold" :
+                            step.status === "running" ? "text-warning animate-pulse" : "text-muted-foreground"
+                          }>
+                            {step.status.toUpperCase()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <Button 
+                      onClick={executeFlashPlan} 
+                      disabled={isRunning || currentStep !== -1} 
+                      className="w-full" 
+                      variant={currentStep !== -1 ? "secondary" : "default"}
+                    >
+                      {currentStep !== -1 ? "Flashing..." : "Execute Flash Plan"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </>
           )}
         </div>
