@@ -22,7 +22,7 @@ interface TerminalEvent {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"adb" | "fastboot" | "flash" | "unlock" | "program" | "tools" | "mtk" | "qcom" | "sam" | "account">("adb");
+  const [activeTab, setActiveTab] = useState<"home" | "adb" | "fastboot" | "flash" | "unlock" | "program" | "tools" | "mtk" | "qcom" | "sam" | "account">("home");
   const [logs, setLogs] = useState<TerminalEvent[]>([]);
   const [shellCmd, setShellCmd] = useState("");
   const [fbShellCmd, setFbShellCmd] = useState("");
@@ -36,6 +36,7 @@ export default function App() {
   const [flashPlan, setFlashPlan] = useState<{name: string, status: string}[]>([]);
   const [currentStep, setCurrentStep] = useState(-1);
   const [unlockSidebarTab, setUnlockSidebarTab] = useState("general");
+  const [toolsSidebarTab, setToolsSidebarTab] = useState("firmware");
 
   // Phase 5 State
   const [unlockToken, setUnlockToken] = useState("");
@@ -275,12 +276,11 @@ export default function App() {
       {/* Navigation Tabs */}
       <div className="flex items-center gap-1 overflow-x-auto border-b border-slate-800 bg-[#161925] px-4 py-2 scrollbar-none">
         {[
+          { id: "home", label: "Home", icon: UserCircle },
           { id: "adb", label: "ADB & Fastboot", icon: Activity },
-          { id: "flash", label: "Firmware", icon: DownloadCloud },
           { id: "unlock", label: "Unlock & Flash", icon: ShieldCheck },
           { id: "program", label: "Program", icon: Cpu },
           { id: "tools", label: "Tools", icon: TerminalIcon },
-          { id: "account", label: "Account", icon: UserCircle },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -576,65 +576,112 @@ export default function App() {
             </>
           )}
 
-          {activeTab === "flash" && (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5"/> Firmware Flasher (Task Engine)</CardTitle>
-                  <CardDescription>
-                    Safely flash firmware packages with pre-flight checks and automated sequences.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <div className="flex gap-2">
-                    <Input 
-                      placeholder="Select Firmware Directory..."
-                      value={firmwareDir}
-                      onChange={(e) => setFirmwareDir(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button onClick={generateFlashPlan} disabled={isRunning || !firmwareDir} variant="secondary">
-                      Load Firmware
-                    </Button>
+          {activeTab === "home" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-4">
+                <Card className="bg-[#161925] border-slate-800 shadow-lg relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-8 opacity-5">
+                    <Zap className="h-32 w-32 text-cyan-400" />
                   </div>
-                </CardContent>
-              </Card>
-
-              {flashPlan.length > 0 && (
-                <Card>
                   <CardHeader>
-                    <CardTitle>Flash Plan Preview</CardTitle>
-                    <CardDescription>Review the execution order and pre-flight checks.</CardDescription>
+                    <CardTitle className="text-2xl font-bold text-white tracking-wide">TECH<span className="text-cyan-400">FLASH</span></CardTitle>
+                    <CardDescription className="text-slate-400">Advanced Firmware Flashing Utility</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col gap-2 mb-4 bg-muted/50 p-4 rounded-md border text-sm">
-                      {flashPlan.map((step, idx) => (
-                        <div key={idx} className="flex justify-between items-center">
-                          <span className={currentStep === idx ? "text-primary font-bold" : "text-muted-foreground"}>
-                            {idx + 1}. {step.name}
-                          </span>
-                          <span className={
-                            step.status === "done" ? "text-success font-bold" :
-                            step.status === "running" ? "text-warning animate-pulse" : "text-muted-foreground"
-                          }>
-                            {step.status.toUpperCase()}
-                          </span>
-                        </div>
-                      ))}
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-3 text-sm">
+                      <UserCircle className="h-5 w-5 text-purple-400" />
+                      <span className="text-slate-300">Author: Mahamudul Hasan Monir</span>
                     </div>
-                    
-                    <Button 
-                      onClick={executeFlashPlan} 
-                      disabled={isRunning || currentStep !== -1} 
-                      className="w-full" 
-                      variant={currentStep !== -1 ? "secondary" : "default"}
-                    >
-                      {currentStep !== -1 ? "Flashing..." : "Execute Flash Plan"}
-                    </Button>
+                    <div className="flex items-center gap-3 text-sm">
+                      <svg className="h-5 w-5 text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg>
+                      <span className="text-slate-300">@techflash_tool</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <svg className="h-5 w-5 text-blue-600" viewBox="0 0 24 24" fill="currentColor"><path d="M22.675 0h-21.35C.597 0 0 .597 0 1.325v21.351C0 23.403.597 24 1.325 24h11.495v-9.294H9.691v-3.622h3.129V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.73 0 1.323-.597 1.323-1.325V1.325C24 .597 23.403 0 22.675 0z"/></svg>
+                      <span className="text-slate-300">fb.com/techflashtool</span>
+                    </div>
                   </CardContent>
                 </Card>
-              )}
-            </>
+
+                <Card className="bg-[#161925] border-slate-800 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-white">What's New (Changelog)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[120px] bg-slate-800/30 p-4 rounded text-sm border border-slate-800">
+                      <strong className="text-cyan-400">v1.0.3</strong>
+                      <ul className="list-disc ml-5 mb-3 text-slate-400">
+                        <li>Overhauled UI with Dark/Modern Design.</li>
+                        <li>Nested Unlock and Tools sidebars.</li>
+                        <li>Combined ADB & Fastboot workspace.</li>
+                      </ul>
+                      <strong className="text-slate-300">v1.0.2</strong>
+                      <ul className="list-disc ml-5 mb-3 text-slate-500">
+                        <li>Added Phase 7 Account, Licensing, and Telemetry features.</li>
+                        <li>Added hardware-bound licensing verification.</li>
+                      </ul>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <Card className="bg-[#161925] border-slate-800 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-white"><ShieldCheck className="h-5 w-5 text-emerald-400"/> Software License</CardTitle>
+                    <CardDescription className="text-slate-400">Activate TechFlash Pro using your hardware-bound license key.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-4">
+                    {isLicensed ? (
+                      <div className="bg-emerald-500/20 text-emerald-400 p-3 rounded border border-emerald-500/50 flex items-center justify-between">
+                         <span><strong>Pro License Active</strong> (Hardware Bound)</span>
+                         <Button size="sm" variant="outline" className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/20" onClick={() => setIsLicensed(false)}>Deactivate</Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="Enter License Key (e.g. TF-XXXX-XXXX-XXXX)..." 
+                          value={licenseKey}
+                          onChange={(e) => setLicenseKey(e.target.value)}
+                          className="flex-1 bg-[#222532] border-slate-700 text-white"
+                        />
+                        <Button className="bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-md" onClick={() => { if(licenseKey) { setIsLicensed(true); addLog("License successfully bound to hardware signature.", "info", "t_auth"); } }}>Activate Key</Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-[#161925] border-slate-800 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-white"><DownloadCloud className="h-5 w-5 text-purple-400"/> Updates & Telemetry</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h4 className="font-semibold text-sm text-slate-200">Release Channel</h4>
+                        <p className="text-xs text-slate-400">Receive stable updates or beta tests.</p>
+                      </div>
+                      <select className="rounded border border-slate-700 bg-[#222532] px-3 py-1 text-sm text-white outline-none focus:ring-1 focus:ring-cyan-500">
+                        <option>Stable (Recommended)</option>
+                        <option>Beta (Cutting Edge)</option>
+                      </select>
+                    </div>
+                    
+                    <div className="flex justify-between items-center mt-2">
+                      <Button variant="secondary" className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white" onClick={() => addLog("Checking for updates... TechFlash is up to date (v1.0.3).", "info", "t_updater")}>Check for Updates</Button>
+                      <Button variant="secondary" className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white" onClick={() => addLog("Syncing latest remote device-profile database... Done.", "info", "t_updater")}>Sync Device DB</Button>
+                    </div>
+
+                    <div className="border-t border-slate-800 pt-4 mt-2">
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="telemetry" checked={optInTelemetry} onChange={(e) => setOptInTelemetry(e.target.checked)} className="accent-cyan-500" />
+                        <label htmlFor="telemetry" className="text-xs text-slate-400 leading-tight">Allow anonymous crash reporting and telemetry (No device identifiers are collected).</label>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           )}
 
           {activeTab === "unlock" && (
@@ -818,127 +865,124 @@ export default function App() {
           )}
 
           {activeTab === "tools" && (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5"/> Payload.bin Extractor</CardTitle>
-                  <CardDescription>Extract OTA payload.bin files to raw flashable images.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-2">
-                   <Input 
-                      placeholder="Select payload.bin..." 
-                      value={payloadFile} 
-                      onChange={(e) => setPayloadFile(e.target.value)} 
-                    />
-                   <Button disabled={!payloadFile} className="w-full">Extract Payload</Button>
-                </CardContent>
-              </Card>
+            <div className="flex h-full gap-4">
+              {/* Sidebar */}
+              <div className="w-[200px] flex flex-col gap-1 border-r border-slate-800 pr-4 shrink-0">
+                 {["firmware", "utilities"].map((t) => (
+                   <button 
+                     key={t}
+                     onClick={() => setToolsSidebarTab(t)}
+                     className={`text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${toolsSidebarTab === t ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}`}
+                   >
+                     {t === "firmware" && "Firmware Flasher"}
+                     {t === "utilities" && "Utilities"}
+                   </button>
+                 ))}
+              </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Driver Diagnostics</CardTitle>
-                  <CardDescription>Install and fix ADB / Fastboot / VCOM USB drivers.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-2">
-                   <Button variant="secondary" onClick={() => addLog("Installing Google USB Drivers...", "info", "t_tools")}>Install Universal ADB Driver</Button>
-                   <Button variant="secondary" onClick={() => addLog("Scanning registry for driver conflicts...", "info", "t_tools")}>Fix Device Not Recognized</Button>
-                </CardContent>
-              </Card>
+              {/* Content */}
+              <div className="flex-1 flex flex-col gap-4">
+                 {toolsSidebarTab === "firmware" && (
+                   <>
+                     <Card className="bg-[#161925] border-slate-800 shadow-lg">
+                       <CardHeader className="pb-3 border-b border-slate-800/50">
+                         <CardTitle className="flex items-center gap-2 text-white"><Zap className="h-5 w-5 text-cyan-400"/> Firmware Flasher (Task Engine)</CardTitle>
+                         <CardDescription className="text-slate-400">Safely flash firmware packages with pre-flight checks and automated sequences.</CardDescription>
+                       </CardHeader>
+                       <CardContent className="pt-4 flex flex-col gap-4">
+                         <div className="flex gap-2">
+                           <Input 
+                             placeholder="Select Firmware Directory..."
+                             value={firmwareDir}
+                             onChange={(e) => setFirmwareDir(e.target.value)}
+                             className="flex-1 bg-[#222532] border-slate-700 text-white"
+                           />
+                           <Button onClick={generateFlashPlan} disabled={isRunning || !firmwareDir} className="bg-purple-600 hover:bg-purple-700 text-white border-none shadow-md">
+                             Load Firmware
+                           </Button>
+                         </div>
+                       </CardContent>
+                     </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Partition Backup</CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-2">
-                   <Button variant="outline" onClick={() => handleStreamSidecar("adb", ["pull", "/dev/block/bootdevice/by-name/persist", "persist.img"], "t_tools", "adb pull persist")}>Backup Persist (Needs Root)</Button>
-                   <Button variant="outline" onClick={() => handleStreamSidecar("adb", ["pull", "/dev/block/bootdevice/by-name/modemst1", "modemst1.img"], "t_tools", "adb pull modemst1")}>Backup EFS (Needs Root)</Button>
-                </CardContent>
-              </Card>
-            </>
-          )}
+                     {flashPlan.length > 0 && (
+                       <Card className="bg-[#161925] border-slate-800 shadow-lg">
+                         <CardHeader className="pb-3 border-b border-slate-800/50">
+                           <CardTitle className="text-white">Flash Plan Preview</CardTitle>
+                           <CardDescription className="text-slate-400">Review the execution order and pre-flight checks.</CardDescription>
+                         </CardHeader>
+                         <CardContent className="pt-4">
+                           <div className="flex flex-col gap-2 mb-4 bg-slate-800/30 p-4 rounded-md border border-slate-700 text-sm">
+                             {flashPlan.map((step, idx) => (
+                               <div key={idx} className="flex justify-between items-center">
+                                 <span className={currentStep === idx ? "text-cyan-400 font-bold" : "text-slate-400"}>
+                                   {idx + 1}. {step.name}
+                                 </span>
+                                 <span className={
+                                   step.status === "done" ? "text-emerald-400 font-bold" :
+                                   step.status === "running" ? "text-orange-400 animate-pulse font-bold" : "text-slate-500"
+                                 }>
+                                   {step.status.toUpperCase()}
+                                 </span>
+                               </div>
+                             ))}
+                           </div>
+                           
+                           <Button 
+                             onClick={executeFlashPlan} 
+                             disabled={isRunning || currentStep !== -1} 
+                             className={`w-full text-white font-bold tracking-wide shadow-md border-none ${currentStep !== -1 ? 'bg-slate-700' : 'bg-emerald-500 hover:bg-emerald-600'}`}
+                           >
+                             {currentStep !== -1 ? "Flashing..." : "Execute Flash Plan"}
+                           </Button>
+                         </CardContent>
+                       </Card>
+                     )}
+                   </>
+                 )}
 
+                 {toolsSidebarTab === "utilities" && (
+                   <>
+                     <Card className="bg-[#161925] border-slate-800 shadow-lg">
+                       <CardHeader className="pb-3 border-b border-slate-800/50">
+                         <CardTitle className="flex items-center gap-2 text-white"><Zap className="h-5 w-5 text-purple-400"/> Payload.bin Extractor</CardTitle>
+                         <CardDescription className="text-slate-400">Extract OTA payload.bin files to raw flashable images.</CardDescription>
+                       </CardHeader>
+                       <CardContent className="pt-4 flex flex-col gap-2">
+                          <Input 
+                             placeholder="Select payload.bin..." 
+                             value={payloadFile} 
+                             onChange={(e) => setPayloadFile(e.target.value)}
+                             className="bg-[#222532] border-slate-700 text-white" 
+                           />
+                          <Button disabled={!payloadFile} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold border-none">Extract Payload</Button>
+                       </CardContent>
+                     </Card>
 
-          {activeTab === "account" && (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5"/> Software License</CardTitle>
-                  <CardDescription>Activate TechFlash Pro using your hardware-bound license key.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  {isLicensed ? (
-                    <div className="bg-success/20 text-success p-3 rounded border border-success/50 flex items-center justify-between">
-                       <span><strong>Pro License Active</strong> (Hardware Bound)</span>
-                       <Button size="sm" variant="outline" onClick={() => setIsLicensed(false)}>Deactivate</Button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Input 
-                        placeholder="Enter License Key (e.g. TF-XXXX-XXXX-XXXX)..." 
-                        value={licenseKey}
-                        onChange={(e) => setLicenseKey(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button onClick={() => { if(licenseKey) { setIsLicensed(true); addLog("License successfully bound to hardware signature.", "info", "t_auth"); } }}>Activate Key</Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                     <div className="grid grid-cols-2 gap-4">
+                       <Card className="bg-[#161925] border-slate-800 shadow-lg">
+                         <CardHeader className="pb-3 border-b border-slate-800/50">
+                           <CardTitle className="text-white">Driver Diagnostics</CardTitle>
+                         </CardHeader>
+                         <CardContent className="pt-4 flex flex-col gap-2">
+                            <Button className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white" onClick={() => addLog("Installing Google USB Drivers...", "info", "t_tools")}>Install ADB Driver</Button>
+                            <Button className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white" onClick={() => addLog("Scanning registry for driver conflicts...", "info", "t_tools")}>Fix Device Not Recognized</Button>
+                         </CardContent>
+                       </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><DownloadCloud className="h-5 w-5"/> Updates & Telemetry</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h4 className="font-semibold text-sm">Release Channel</h4>
-                      <p className="text-sm text-muted-foreground">Receive stable updates or beta tests.</p>
-                    </div>
-                    <select className="rounded border bg-background px-3 py-1 text-sm outline-none">
-                      <option>Stable (Recommended)</option>
-                      <option>Beta (Cutting Edge)</option>
-                    </select>
-                  </div>
-                  
-                  <div className="flex justify-between items-center mt-2">
-                    <Button variant="secondary" onClick={() => addLog("Checking for updates... TechFlash is up to date (v1.0.2).", "info", "t_updater")}>Check for Updates</Button>
-                    <Button variant="secondary" onClick={() => addLog("Syncing latest remote device-profile database... Done.", "info", "t_updater")}>Sync Device DB</Button>
-                  </div>
-
-                  <div className="border-t pt-4 mt-2">
-                    <div className="flex items-center gap-2">
-                      <input type="checkbox" id="telemetry" checked={optInTelemetry} onChange={(e) => setOptInTelemetry(e.target.checked)} />
-                      <label htmlFor="telemetry" className="text-sm">Allow anonymous crash reporting and telemetry (No device identifiers are collected).</label>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>What's New (Changelog)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[120px] bg-muted/30 p-4 rounded text-sm">
-                    <strong>v1.0.2</strong>
-                    <ul className="list-disc ml-5 mb-3 text-muted-foreground">
-                      <li>Added Phase 7 Account, Licensing, and Telemetry features.</li>
-                      <li>Added hardware-bound licensing verification.</li>
-                    </ul>
-                    <strong>v1.0.1</strong>
-                    <ul className="list-disc ml-5 mb-3 text-muted-foreground">
-                      <li>Added Qualcomm, MediaTek, and Samsung brand-specific flash modules.</li>
-                      <li>Refactored UI Tabs for better scalability.</li>
-                    </ul>
-                    <strong>v1.0.0</strong>
-                    <ul className="list-disc ml-5 text-muted-foreground">
-                      <li>Initial Release with standard ADB and Fastboot Task Engine.</li>
-                    </ul>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </>
+                       <Card className="bg-[#161925] border-slate-800 shadow-lg">
+                         <CardHeader className="pb-3 border-b border-slate-800/50">
+                           <CardTitle className="text-white">Partition Backup</CardTitle>
+                         </CardHeader>
+                         <CardContent className="pt-4 flex flex-col gap-2">
+                            <Button className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white" onClick={() => handleStreamSidecar("adb", ["pull", "/dev/block/bootdevice/by-name/persist", "persist.img"], "t_tools", "adb pull persist")}>Backup Persist (Needs Root)</Button>
+                            <Button className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white" onClick={() => handleStreamSidecar("adb", ["pull", "/dev/block/bootdevice/by-name/modemst1", "modemst1.img"], "t_tools", "adb pull modemst1")}>Backup EFS (Needs Root)</Button>
+                         </CardContent>
+                       </Card>
+                     </div>
+                   </>
+                 )}
+              </div>
+            </div>
           )}
           </div>
         </div>
