@@ -11,7 +11,7 @@ import {
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { ScrollArea } from "./components/ui/scroll-area";
-import { Terminal as TerminalIcon, Zap } from "lucide-react";
+import { Terminal as TerminalIcon, Zap, Smartphone, Activity } from "lucide-react";
 
 interface TerminalEvent {
   taskId: string;
@@ -22,16 +22,25 @@ interface TerminalEvent {
 }
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState<"adb" | "fastboot">("adb");
   const [logs, setLogs] = useState<TerminalEvent[]>([]);
   const [varName, setVarName] = useState("all");
+  const [shellCmd, setShellCmd] = useState("");
   const [isRunning, setIsRunning] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Device Info State
+  const [deviceInfo, setDeviceInfo] = useState({
+    model: "Unknown",
+    brand: "Unknown",
+    androidVersion: "Unknown",
+    battery: "Unknown",
+  });
 
   useEffect(() => {
     const unlisten = listen<TerminalEvent>("terminal-line", (event) => {
       setLogs((prev) => [...prev, event.payload]);
     });
-
     return () => {
       unlisten.then((f) => f());
     };
@@ -46,32 +55,92 @@ export default function App() {
     }
   }, [logs]);
 
-  const handleGetVar = async () => {
-    if (isRunning) return;
-    setIsRunning(true);
+  const addLog = (text: string, level: string = "info", taskId: string = "general") => {
     setLogs((prev) => [
       ...prev,
       {
-        taskId: "t_getvar",
-        ts: new Date().toLocaleTimeString('en-US', { hour12: false }),
-        level: "cmd",
-        text: `> fastboot getvar ${varName}`,
+        taskId,
+        ts: new Date().toLocaleTimeString("en-US", { hour12: false }),
+        level,
+        text,
         elapsedMs: 0,
       },
     ]);
+  };
+
+  const handleExecuteSidecar = async (sidecar: string, args: string[], taskId: string, cmdStr: string) => {
+    if (isRunning) return;
+    setIsRunning(true);
+    addLog(`> ${sidecar} ${cmdStr}`, "cmd", taskId);
     try {
-      await invoke("fastboot_getvar", { var: varName });
+      const output = await invoke<string>("execute_sidecar", { sidecar, args });
+      addLog(output, "info", taskId);
+      return output;
     } catch (e: any) {
-      setLogs((prev) => [
+      addLog(`Error: ${e}`, "error", taskId);
+      return null;
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleStreamSidecar = async (sidecar: string, args: string[], taskId: string, cmdStr: string) => {
+    if (isRunning) return;
+    setIsRunning(true);
+    addLog(`> ${sidecar} ${cmdStr}`, "cmd", taskId);
+    try {
+      await invoke("stream_sidecar", { taskId, sidecar, args });
+    } catch (e: any) {
+      addLog(`Error: ${e}`, "error", taskId);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  // Fastboot Commands
+  const handleGetVar = () => handleStreamSidecar("fastboot", ["getvar", varName], "t_getvar", `getvar ${varName}`);
+
+  // ADB Commands
+  const handleAdbShell = () => {
+    if (!shellCmd) return;
+    handleExecuteSidecar("adb", ["shell", shellCmd], "t_adb_shell", `shell ${shellCmd}`);
+  };
+
+  const handleAdbReboot = (mode: string) => {
+    const args = mode === "system" ? ["reboot"] : ["reboot", mode];
+    handleExecuteSidecar("adb", args, "t_adb_reboot", args.join(" "));
+  };
+
+  const fetchDeviceInfo = async () => {
+    if (isRunning) return;
+    setIsRunning(true);
+    addLog(`> adb shell getprop`, "cmd", "t_adb_info");
+    try {
+      const output = await invoke<string>("execute_sidecar", { sidecar: "adb", args: ["shell", "getprop"] });
+      
+      const getPropVal = (prop: string) => {
+        const match = output.match(new RegExp(`\\[${prop}\\]: \\[(.*?)\\]`));
+        return match ? match[1] : "Unknown";
+      };
+
+      setDeviceInfo({
+        model: getPropVal("ro.product.model"),
+        brand: getPropVal("ro.product.brand"),
+        androidVersion: getPropVal("ro.build.version.release"),
+        battery: "Fetching...", 
+      });
+      
+      // Get battery level
+      const dumpsys = await invoke<string>("execute_sidecar", { sidecar: "adb", args: ["shell", "dumpsys", "battery"] });
+      const batteryMatch = dumpsys.match(/level: (\d+)/);
+      setDeviceInfo(prev => ({
         ...prev,
-        {
-          taskId: "error",
-          ts: new Date().toLocaleTimeString('en-US', { hour12: false }),
-          level: "error",
-          text: `Error: ${e}`,
-          elapsedMs: 0,
-        },
-      ]);
+        battery: batteryMatch ? `${batteryMatch[1]}%` : "Unknown"
+      }));
+
+      addLog(`Device Info Updated: ${getPropVal("ro.product.model")}`, "info", "t_adb_info");
+    } catch (e: any) {
+      addLog(`Error fetching device info: ${e}`, "error", "t_adb_info");
     } finally {
       setIsRunning(false);
     }
@@ -87,6 +156,23 @@ export default function App() {
           <Zap className="h-6 w-6 text-primary" />
           <h1 className="text-xl font-bold">TechFlash</h1>
         </div>
+        
+        {/* Basic Tabs */}
+        <div className="flex gap-2">
+          <Button 
+            variant={activeTab === "adb" ? "default" : "outline"} 
+            onClick={() => setActiveTab("adb")}
+          >
+            ADB Module
+          </Button>
+          <Button 
+            variant={activeTab === "fastboot" ? "default" : "outline"} 
+            onClick={() => setActiveTab("fastboot")}
+          >
+            Fastboot Module
+          </Button>
+        </div>
+
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full bg-success"></div>
           <span className="text-sm text-muted-foreground">Device Connected</span>
@@ -95,29 +181,89 @@ export default function App() {
 
       {/* Main Workspace */}
       <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-2">
+        
         {/* Left: Actions Panel */}
-        <div className="flex flex-col gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Fastboot Actions</CardTitle>
-              <CardDescription>
-                Execute standard fastboot commands.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2">
-                <Input
-                  value={varName}
-                  onChange={(e) => setVarName(e.target.value)}
-                  placeholder="Variable name (e.g., all, product)"
-                  className="max-w-[200px]"
-                />
-                <Button onClick={handleGetVar} disabled={isRunning}>
-                  Getvar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="flex flex-col gap-4 overflow-y-auto pr-2">
+          
+          {activeTab === "adb" && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Smartphone className="h-5 w-5"/> Device Info</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                    <div><span className="text-muted-foreground">Model:</span> {deviceInfo.model}</div>
+                    <div><span className="text-muted-foreground">Brand:</span> {deviceInfo.brand}</div>
+                    <div><span className="text-muted-foreground">Android:</span> {deviceInfo.androidVersion}</div>
+                    <div><span className="text-muted-foreground">Battery:</span> {deviceInfo.battery}</div>
+                  </div>
+                  <Button onClick={fetchDeviceInfo} disabled={isRunning} variant="secondary" className="w-full">
+                    Refresh Device Info
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5"/> ADB Reboot Menu</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-2">
+                  <Button onClick={() => handleAdbReboot("system")} disabled={isRunning} variant="outline">System</Button>
+                  <Button onClick={() => handleAdbReboot("recovery")} disabled={isRunning} variant="outline">Recovery</Button>
+                  <Button onClick={() => handleAdbReboot("bootloader")} disabled={isRunning} variant="outline">Bootloader</Button>
+                  <Button onClick={() => handleAdbReboot("fastboot")} disabled={isRunning} variant="outline">Fastbootd</Button>
+                  <Button onClick={() => handleAdbReboot("edl")} disabled={isRunning} variant="outline">EDL</Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><TerminalIcon className="h-5 w-5"/> Shell Command</CardTitle>
+                  <CardDescription>Run a raw ADB shell command.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex gap-2">
+                  <Input
+                    value={shellCmd}
+                    onChange={(e) => setShellCmd(e.target.value)}
+                    placeholder="e.g. ls -la /sdcard"
+                    className="flex-1"
+                    onKeyDown={(e) => e.key === "Enter" && handleAdbShell()}
+                  />
+                  <Button onClick={handleAdbShell} disabled={isRunning || !shellCmd}>Run</Button>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {activeTab === "fastboot" && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5"/> Fastboot Actions</CardTitle>
+                <CardDescription>
+                  Execute standard fastboot commands.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2 mb-4">
+                  <Input
+                    value={varName}
+                    onChange={(e) => setVarName(e.target.value)}
+                    placeholder="Variable name (e.g., all, product)"
+                    className="flex-1"
+                  />
+                  <Button onClick={handleGetVar} disabled={isRunning}>
+                    Getvar
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                   <Button onClick={() => handleStreamSidecar("fastboot", ["reboot"], "t_fb_reboot", "reboot")} disabled={isRunning} variant="outline">Reboot System</Button>
+                   <Button onClick={() => handleStreamSidecar("fastboot", ["reboot", "recovery"], "t_fb_reboot", "reboot recovery")} disabled={isRunning} variant="outline">Reboot Recovery</Button>
+                   <Button onClick={() => handleStreamSidecar("fastboot", ["reboot", "bootloader"], "t_fb_reboot", "reboot bootloader")} disabled={isRunning} variant="outline">Reboot Bootloader</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Right: Terminal */}
@@ -125,20 +271,20 @@ export default function App() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div className="flex items-center gap-2">
               <TerminalIcon className="h-5 w-5" />
-              <CardTitle className="text-md">Terminal</CardTitle>
+              <CardTitle className="text-md">Terminal Log</CardTitle>
             </div>
             <Button variant="ghost" size="sm" onClick={clearTerminal}>
               Clear
             </Button>
           </CardHeader>
-          <CardContent className="flex-1 overflow-hidden p-2 pt-0">
+          <CardContent className="flex-1 overflow-hidden p-2 pt-0 h-full">
             <ScrollArea
               className="h-full w-full rounded-md bg-black/50 p-4 font-mono text-sm"
               ref={scrollRef}
             >
               {logs.length === 0 ? (
                 <div className="text-muted-foreground italic">
-                  Waiting for events...
+                  Waiting for commands...
                 </div>
               ) : (
                 logs.map((log, i) => (
