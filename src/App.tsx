@@ -24,8 +24,11 @@ interface TerminalEvent {
 export default function App() {
   const [activeTab, setActiveTab] = useState<"adb" | "fastboot">("adb");
   const [logs, setLogs] = useState<TerminalEvent[]>([]);
-  const [varName, setVarName] = useState("all");
   const [shellCmd, setShellCmd] = useState("");
+  const [fbShellCmd, setFbShellCmd] = useState("");
+  const [flashPartition, setFlashPartition] = useState("boot");
+  const [disableVerity, setDisableVerity] = useState(false);
+  const [flashFile, setFlashFile] = useState("");
   const [isRunning, setIsRunning] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -98,7 +101,21 @@ export default function App() {
   };
 
   // Fastboot Commands
-  const handleGetVar = () => handleStreamSidecar("fastboot", ["getvar", varName], "t_getvar", `getvar ${varName}`);
+  
+  const handleFbShell = () => {
+    if (!fbShellCmd) return;
+    handleExecuteSidecar("fastboot", fbShellCmd.split(" "), "t_fb_shell", fbShellCmd);
+  };
+
+  const handleFlash = () => {
+    if (!flashFile) return;
+    const args = ["flash", flashPartition];
+    if (disableVerity) {
+      args.push("--disable-verity", "--disable-verification");
+    }
+    args.push(flashFile);
+    handleStreamSidecar("fastboot", args, "t_fb_flash", args.join(" "));
+  };
 
   // ADB Commands
   const handleAdbShell = () => {
@@ -237,32 +254,101 @@ export default function App() {
           )}
 
           {activeTab === "fastboot" && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5"/> Fastboot Actions</CardTitle>
-                <CardDescription>
-                  Execute standard fastboot commands.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-2 mb-4">
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5"/> Fastboot Dashboard</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="flex gap-2">
+                    <Button onClick={() => handleExecuteSidecar("fastboot", ["devices"], "t_fb_check", "devices")} disabled={isRunning} variant="default" className="flex-1">Check Device</Button>
+                    <select className="flex-1 rounded-md border bg-background px-3 py-2 text-sm outline-none" onChange={(e) => handleStreamSidecar("fastboot", ["reboot", e.target.value], "t_fb_reboot", `reboot ${e.target.value}`)}>
+                      <option value="">Reboot to...</option>
+                      <option value="">System</option>
+                      <option value="recovery">Recovery</option>
+                      <option value="bootloader">Bootloader</option>
+                      <option value="fastboot">Fastbootd</option>
+                    </select>
+                  </div>
+                  
+                  <div className="grid grid-cols-4 gap-2 mt-2">
+                    <Button onClick={() => handleStreamSidecar("fastboot", ["getvar", "all"], "t_fb_getvar", "getvar all")} disabled={isRunning} variant="outline" size="sm">Get All</Button>
+                    <Button onClick={() => handleStreamSidecar("fastboot", ["getvar", "current-slot"], "t_fb_getvar", "getvar current-slot")} disabled={isRunning} variant="outline" size="sm">Slot</Button>
+                    <Button onClick={() => handleStreamSidecar("fastboot", ["getvar", "product"], "t_fb_getvar", "getvar product")} disabled={isRunning} variant="outline" size="sm">Product</Button>
+                    <Button onClick={() => handleStreamSidecar("fastboot", ["getvar", "unlocked"], "t_fb_getvar", "getvar unlocked")} disabled={isRunning} variant="outline" size="sm">Status</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-2">
+                  <Button onClick={() => handleStreamSidecar("fastboot", ["flashing", "unlock"], "t_fb_unlock", "flashing unlock")} disabled={isRunning} variant="destructive">Flashing Unlock</Button>
+                  <Button onClick={() => handleStreamSidecar("fastboot", ["flashing", "lock"], "t_fb_lock", "flashing lock")} disabled={isRunning} variant="secondary">Flashing Lock</Button>
+                  <Button onClick={() => handleStreamSidecar("fastboot", ["set_active", "other"], "t_fb_slot", "set_active other")} disabled={isRunning} variant="outline">Change Slot (A↔B)</Button>
+                  <Button onClick={() => handleStreamSidecar("fastboot", ["-w"], "t_fb_wipe", "-w")} disabled={isRunning} variant="destructive">Format Data (-w)</Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Flash Partition</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="flex gap-2 items-center">
+                    <select
+                      value={flashPartition}
+                      onChange={(e) => setFlashPartition(e.target.value)}
+                      className="flex-1 rounded-md border bg-background px-3 py-2 text-sm outline-none"
+                    >
+                      <option value="boot">boot</option>
+                      <option value="vendor_boot">vendor_boot</option>
+                      <option value="init_boot">init_boot</option>
+                      <option value="recovery">recovery</option>
+                      <option value="dtbo">dtbo</option>
+                      <option value="vbmeta">vbmeta</option>
+                      <option value="super">super</option>
+                      <option value="system">system</option>
+                    </select>
+                    
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" id="disable-verity" checked={disableVerity} onChange={(e) => setDisableVerity(e.target.checked)} />
+                      <label htmlFor="disable-verity" className="text-sm">Disable Verity</label>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Input 
+                      placeholder="Select image file..."
+                      value={flashFile}
+                      onChange={(e) => setFlashFile(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button onClick={handleFlash} disabled={isRunning || !flashFile}>
+                      Flash Image
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Raw Fastboot Command</CardTitle>
+                </CardHeader>
+                <CardContent className="flex gap-2">
                   <Input
-                    value={varName}
-                    onChange={(e) => setVarName(e.target.value)}
-                    placeholder="Variable name (e.g., all, product)"
+                    value={fbShellCmd}
+                    onChange={(e) => setFbShellCmd(e.target.value)}
+                    placeholder="e.g. erase boot"
                     className="flex-1"
+                    onKeyDown={(e) => e.key === "Enter" && handleFbShell()}
                   />
-                  <Button onClick={handleGetVar} disabled={isRunning}>
-                    Getvar
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                   <Button onClick={() => handleStreamSidecar("fastboot", ["reboot"], "t_fb_reboot", "reboot")} disabled={isRunning} variant="outline">Reboot System</Button>
-                   <Button onClick={() => handleStreamSidecar("fastboot", ["reboot", "recovery"], "t_fb_reboot", "reboot recovery")} disabled={isRunning} variant="outline">Reboot Recovery</Button>
-                   <Button onClick={() => handleStreamSidecar("fastboot", ["reboot", "bootloader"], "t_fb_reboot", "reboot bootloader")} disabled={isRunning} variant="outline">Reboot Bootloader</Button>
-                </div>
-              </CardContent>
-            </Card>
+                  <Button onClick={handleFbShell} disabled={isRunning || !fbShellCmd}>Run</Button>
+                </CardContent>
+              </Card>
+            </>
           )}
         </div>
 
