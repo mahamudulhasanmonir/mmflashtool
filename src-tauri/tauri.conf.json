@@ -13,8 +13,14 @@
     "windows": [
       {
         "title": "TechFlash",
-        "width": 1000,
-        "height": 700
+        "width": 1100,
+        "height": 720,
+        "resizable": true,
+        "fullscreen": false,
+        "maximizable": true,
+        "center": true,
+        "minWidth": 800,
+        "minHeight": 950
       }
     ],
     "security": {
