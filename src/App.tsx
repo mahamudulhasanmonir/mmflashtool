@@ -11,7 +11,7 @@ import {
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { ScrollArea } from "./components/ui/scroll-area";
-import { Terminal as TerminalIcon, Zap, Smartphone, Activity, Cpu, UserCircle, ShieldCheck, DownloadCloud } from "lucide-react";
+import { Terminal as TerminalIcon, Zap, Smartphone, Activity, Cpu, UserCircle, ShieldCheck, DownloadCloud, Clock, Calendar, CheckCircle2, XCircle } from "lucide-react";
 
 interface TerminalEvent {
   taskId: string;
@@ -233,110 +233,125 @@ export default function App() {
 
   const clearTerminal = () => setLogs([]);
 
+  // Date and Time hook
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
-    <div className="flex h-screen flex-col bg-background p-4 text-foreground dark">
-      {/* Header */}
-      <header className="mb-4 flex items-center justify-between border-b pb-4">
-        <div className="flex items-center gap-2">
-          <Zap className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-bold">TechFlash</h1>
-        </div>
-        
-        {/* Basic Tabs */}
-        <div className="flex gap-2 flex-wrap">
-          <Button variant={activeTab === "adb" ? "default" : "outline"} onClick={() => setActiveTab("adb")} size="sm">
-            ADB
-          </Button>
-          <Button variant={activeTab === "fastboot" ? "default" : "outline"} onClick={() => setActiveTab("fastboot")} size="sm">
-            Fastboot
-          </Button>
-          <Button variant={activeTab === "flash" ? "default" : "outline"} onClick={() => setActiveTab("flash")} size="sm">
-            Firmware
-          </Button>
-          <Button variant={activeTab === "unlock" ? "default" : "outline"} onClick={() => setActiveTab("unlock")} size="sm">
-            Unlock/Root
-          </Button>
-          <Button variant={activeTab === "program" ? "default" : "outline"} onClick={() => setActiveTab("program")} size="sm">
-            Program
-          </Button>
-          <Button variant={activeTab === "tools" ? "default" : "outline"} onClick={() => setActiveTab("tools")} size="sm">
-            Tools
-          </Button>
-          <div className="w-px h-6 bg-border mx-1 self-center"></div>
-          <Button variant={activeTab === "mtk" ? "default" : "outline"} onClick={() => setActiveTab("mtk")} size="sm">
-            MediaTek
-          </Button>
-          <Button variant={activeTab === "qcom" ? "default" : "outline"} onClick={() => setActiveTab("qcom")} size="sm">
-            Qualcomm
-          </Button>
-          <Button variant={activeTab === "sam" ? "default" : "outline"} onClick={() => setActiveTab("sam")} size="sm">
-            Samsung
-          </Button>
+    <div className="flex h-screen flex-col bg-[#0f111a] text-slate-200 font-sans selection:bg-primary/30">
+      {/* Top Status Bar */}
+      <header className="flex items-center justify-between border-b border-slate-800 bg-[#161925] px-4 py-2 text-sm shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 font-bold text-lg tracking-tight text-white">
+            <Zap className="h-5 w-5 text-cyan-400" fill="currentColor" />
+            <span>TECH<span className="text-cyan-400">FLASH</span></span>
+          </div>
+          
+          <div className="flex items-center gap-3 ml-4">
+            <div className="flex items-center gap-1.5 bg-[#0f111a] border border-slate-800 px-3 py-1 rounded-md text-slate-400">
+              <Calendar className="h-4 w-4" />
+              <span>{time.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-[#0f111a] border border-slate-800 px-3 py-1 rounded-md text-cyan-400 font-mono">
+              <Clock className="h-4 w-4" />
+              <span>{time.toLocaleTimeString('en-GB', { hour12: false })}</span>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => setActiveTab("account")} className={activeTab === "account" ? "bg-accent" : ""}>
-             <UserCircle className={isLicensed ? "text-success" : "text-muted-foreground"} />
-          </Button>
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-success"></div>
-            <span className="text-sm text-muted-foreground">Device Connected</span>
-          </div>
+        <div className="flex items-center gap-3">
+           <div className="flex items-center gap-2 bg-[#2d1b11] border border-orange-900/50 px-3 py-1 rounded-md">
+             <span className="text-orange-500 font-bold text-xs uppercase tracking-wider">FB</span>
+             <span className="text-orange-200 font-mono text-xs">8f709714</span>
+           </div>
+           <Smartphone className="h-4 w-4 text-cyan-500" />
         </div>
       </header>
 
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-1 overflow-x-auto border-b border-slate-800 bg-[#161925] px-4 py-2 scrollbar-none">
+        {[
+          { id: "adb", label: "ADB", icon: Activity },
+          { id: "fastboot", label: "Fastboot", icon: Zap },
+          { id: "flash", label: "Firmware", icon: DownloadCloud },
+          { id: "unlock", label: "Unlock & Root", icon: ShieldCheck },
+          { id: "program", label: "Program", icon: Cpu },
+          { id: "tools", label: "Tools", icon: TerminalIcon },
+          { id: "mtk", label: "MediaTek", icon: Cpu },
+          { id: "qcom", label: "Qualcomm", icon: Cpu },
+          { id: "sam", label: "Samsung", icon: Smartphone },
+          { id: "account", label: "Account", icon: UserCircle },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all duration-200 ${
+              activeTab === tab.id
+                ? "bg-slate-800 text-white shadow-sm"
+                : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+            }`}
+          >
+            <tab.icon className={`h-4 w-4 ${activeTab === tab.id ? 'text-cyan-400' : ''}`} />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Main Workspace */}
-      <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="flex flex-1 flex-col overflow-hidden">
         
-        {/* Left: Actions Panel */}
-        <div className="flex flex-col gap-4 overflow-y-auto pr-2">
+        {/* Top: Actions Panel */}
+        <div className="flex-[3] overflow-y-auto p-4 bg-[#0f111a]">
+          <div className="max-w-6xl mx-auto flex flex-col gap-4">
           
           {activeTab === "adb" && (
             <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Smartphone className="h-5 w-5"/> Device Info</CardTitle>
+              <Card className="bg-[#161925] border-slate-800 shadow-lg">
+                <CardHeader className="pb-3 border-b border-slate-800/50">
+                  <CardTitle className="flex items-center gap-2 text-white"><Smartphone className="h-5 w-5 text-cyan-400"/> Device Info</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-4">
                   <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                    <div><span className="text-muted-foreground">Model:</span> {deviceInfo.model}</div>
-                    <div><span className="text-muted-foreground">Brand:</span> {deviceInfo.brand}</div>
-                    <div><span className="text-muted-foreground">Android:</span> {deviceInfo.androidVersion}</div>
-                    <div><span className="text-muted-foreground">Battery:</span> {deviceInfo.battery}</div>
+                    <div className="flex flex-col gap-1"><span className="text-slate-500 text-xs font-semibold uppercase">Model</span> <span className="font-mono text-slate-200">{deviceInfo.model}</span></div>
+                    <div className="flex flex-col gap-1"><span className="text-slate-500 text-xs font-semibold uppercase">Brand</span> <span className="font-mono text-slate-200">{deviceInfo.brand}</span></div>
+                    <div className="flex flex-col gap-1"><span className="text-slate-500 text-xs font-semibold uppercase">Android</span> <span className="font-mono text-slate-200">{deviceInfo.androidVersion}</span></div>
+                    <div className="flex flex-col gap-1"><span className="text-slate-500 text-xs font-semibold uppercase">Battery</span> <span className="font-mono text-emerald-400">{deviceInfo.battery}</span></div>
                   </div>
-                  <Button onClick={fetchDeviceInfo} disabled={isRunning} variant="secondary" className="w-full">
+                  <Button onClick={fetchDeviceInfo} disabled={isRunning} className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-semibold">
                     Refresh Device Info
                   </Button>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5"/> ADB Reboot Menu</CardTitle>
+              <Card className="bg-[#161925] border-slate-800 shadow-lg">
+                <CardHeader className="pb-3 border-b border-slate-800/50">
+                  <CardTitle className="flex items-center gap-2 text-white"><Activity className="h-5 w-5 text-purple-400"/> ADB Reboot Menu</CardTitle>
                 </CardHeader>
-                <CardContent className="flex flex-wrap gap-2">
-                  <Button onClick={() => handleAdbReboot("system")} disabled={isRunning} variant="outline">System</Button>
-                  <Button onClick={() => handleAdbReboot("recovery")} disabled={isRunning} variant="outline">Recovery</Button>
-                  <Button onClick={() => handleAdbReboot("bootloader")} disabled={isRunning} variant="outline">Bootloader</Button>
-                  <Button onClick={() => handleAdbReboot("fastboot")} disabled={isRunning} variant="outline">Fastbootd</Button>
-                  <Button onClick={() => handleAdbReboot("edl")} disabled={isRunning} variant="outline">EDL</Button>
+                <CardContent className="pt-4 flex flex-wrap gap-3">
+                  <Button onClick={() => handleAdbReboot("system")} disabled={isRunning} className="bg-slate-700 hover:bg-slate-600 text-white border-none">System</Button>
+                  <Button onClick={() => handleAdbReboot("recovery")} disabled={isRunning} className="bg-slate-700 hover:bg-slate-600 text-white border-none">Recovery</Button>
+                  <Button onClick={() => handleAdbReboot("bootloader")} disabled={isRunning} className="bg-slate-700 hover:bg-slate-600 text-white border-none">Bootloader</Button>
+                  <Button onClick={() => handleAdbReboot("fastboot")} disabled={isRunning} className="bg-slate-700 hover:bg-slate-600 text-white border-none">Fastbootd</Button>
+                  <Button onClick={() => handleAdbReboot("edl")} disabled={isRunning} className="bg-red-500/20 text-red-400 hover:bg-red-500/30 border-none">EDL</Button>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><TerminalIcon className="h-5 w-5"/> Shell Command</CardTitle>
-                  <CardDescription>Run a raw ADB shell command.</CardDescription>
+              <Card className="bg-[#161925] border-slate-800 shadow-lg">
+                <CardHeader className="pb-3 border-b border-slate-800/50">
+                  <CardTitle className="flex items-center gap-2 text-white"><TerminalIcon className="h-5 w-5 text-emerald-400"/> Shell Command</CardTitle>
                 </CardHeader>
-                <CardContent className="flex gap-2">
+                <CardContent className="pt-4 flex gap-2">
                   <Input
                     value={shellCmd}
                     onChange={(e) => setShellCmd(e.target.value)}
                     placeholder="e.g. ls -la /sdcard"
-                    className="flex-1"
+                    className="flex-1 bg-[#0f111a] border-slate-700 text-slate-200 placeholder:text-slate-600 focus-visible:ring-cyan-500"
                     onKeyDown={(e) => e.key === "Enter" && handleAdbShell()}
                   />
-                  <Button onClick={handleAdbShell} disabled={isRunning || !shellCmd}>Run</Button>
+                  <Button onClick={handleAdbShell} disabled={isRunning || !shellCmd} className="bg-emerald-500 hover:bg-emerald-600 text-white">Run</Button>
                 </CardContent>
               </Card>
             </>
@@ -344,53 +359,96 @@ export default function App() {
 
           {activeTab === "fastboot" && (
             <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5"/> Fastboot Dashboard</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
+              <Card className="bg-[#161925] border-slate-800 shadow-lg">
+                <CardHeader className="pb-3 border-b border-slate-800/50 flex flex-row items-center justify-between">
+                  <div className="flex flex-col">
+                    <CardTitle className="flex items-center gap-2 text-white"><Zap className="h-5 w-5 text-red-500" fill="currentColor"/> <span className="tracking-wide">FASTBOOT</span></CardTitle>
+                    <CardDescription className="text-slate-500 text-xs mt-1">Bootloader Flash Mode</CardDescription>
+                  </div>
                   <div className="flex gap-2">
-                    <Button onClick={() => handleExecuteSidecar("fastboot", ["devices"], "t_fb_check", "devices")} disabled={isRunning} variant="default" className="flex-1">Check Device</Button>
-                    <select className="flex-1 rounded-md border bg-background px-3 py-2 text-sm outline-none" onChange={(e) => handleStreamSidecar("fastboot", ["reboot", e.target.value], "t_fb_reboot", `reboot ${e.target.value}`)}>
-                      <option value="">Reboot to...</option>
-                      <option value="">System</option>
-                      <option value="recovery">Recovery</option>
+                     <Button variant="outline" size="sm" className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700">
+                        <TerminalIcon className="h-3.5 w-3.5 mr-2"/> ADB
+                     </Button>
+                     <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white border-none shadow-md">
+                        <Zap className="h-3.5 w-3.5 mr-2" fill="currentColor"/> Fastboot
+                     </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-6 flex flex-col gap-6">
+                  
+                  {/* Reboot Row */}
+                  <div className="flex items-center gap-4">
+                    <span className="w-20 text-sm font-medium text-slate-400">Reboot:</span>
+                    <select 
+                      className="w-[180px] bg-[#222532] border border-slate-700 text-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                      onChange={(e) => handleStreamSidecar("fastboot", ["reboot", e.target.value], "t_fb_reboot", `reboot ${e.target.value}`)}
+                    >
+                      <option value="">Normal</option>
                       <option value="bootloader">Bootloader</option>
+                      <option value="recovery">Recovery</option>
                       <option value="fastboot">Fastbootd</option>
                     </select>
+                    <Button 
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-md" 
+                      disabled={isRunning}
+                    >
+                      ► Execute
+                    </Button>
+                    <div className="flex-1"></div>
+                    <Button 
+                      className="bg-cyan-500 hover:bg-cyan-600 text-white border-none shadow-md" 
+                      onClick={() => handleExecuteSidecar("fastboot", ["devices"], "t_fb_check", "devices")} 
+                      disabled={isRunning}
+                    >
+                      <Activity className="h-4 w-4 mr-1.5"/> Check
+                    </Button>
                   </div>
-                  
-                  <div className="grid grid-cols-4 gap-2 mt-2">
-                    <Button onClick={() => handleStreamSidecar("fastboot", ["getvar", "all"], "t_fb_getvar", "getvar all")} disabled={isRunning} variant="outline" size="sm">Get All</Button>
-                    <Button onClick={() => handleStreamSidecar("fastboot", ["getvar", "current-slot"], "t_fb_getvar", "getvar current-slot")} disabled={isRunning} variant="outline" size="sm">Slot</Button>
-                    <Button onClick={() => handleStreamSidecar("fastboot", ["getvar", "product"], "t_fb_getvar", "getvar product")} disabled={isRunning} variant="outline" size="sm">Product</Button>
-                    <Button onClick={() => handleStreamSidecar("fastboot", ["getvar", "unlocked"], "t_fb_getvar", "getvar unlocked")} disabled={isRunning} variant="outline" size="sm">Status</Button>
+
+                  {/* Getvar Row */}
+                  <div className="flex items-center gap-4">
+                    <span className="w-20 text-sm font-medium text-slate-400">Getvar:</span>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button className="bg-purple-600 hover:bg-purple-700 text-white border-none shadow-sm" disabled={isRunning} onClick={() => handleStreamSidecar("fastboot", ["getvar", "all"], "t_getvar", "getvar all")}>
+                        <svg className="h-3.5 w-3.5 mr-1.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h10"/><path d="M7 12h10"/><path d="M7 17h10"/></svg> All
+                      </Button>
+                      <Button className="bg-purple-600 hover:bg-purple-700 text-white border-none shadow-sm" disabled={isRunning} onClick={() => handleStreamSidecar("fastboot", ["getvar", "current-slot"], "t_getvar", "getvar current-slot")}>
+                        <svg className="h-3.5 w-3.5 mr-1.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Slot
+                      </Button>
+                      <Button className="bg-purple-600 hover:bg-purple-700 text-white border-none shadow-sm" disabled={isRunning} onClick={() => handleStreamSidecar("fastboot", ["getvar", "product"], "t_getvar", "getvar product")}>
+                        <Smartphone className="h-3.5 w-3.5 mr-1.5"/> Product
+                      </Button>
+                      <Button className="bg-purple-600 hover:bg-purple-700 text-white border-none shadow-sm" disabled={isRunning} onClick={() => handleStreamSidecar("fastboot", ["getvar", "unlocked"], "t_getvar", "getvar unlocked")}>
+                        <ShieldCheck className="h-3.5 w-3.5 mr-1.5"/> Status
+                      </Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-2">
-                  <Button onClick={() => handleStreamSidecar("fastboot", ["flashing", "unlock"], "t_fb_unlock", "flashing unlock")} disabled={isRunning} variant="destructive">Flashing Unlock</Button>
-                  <Button onClick={() => handleStreamSidecar("fastboot", ["flashing", "lock"], "t_fb_lock", "flashing lock")} disabled={isRunning} variant="secondary">Flashing Lock</Button>
-                  <Button onClick={() => handleStreamSidecar("fastboot", ["set_active", "other"], "t_fb_slot", "set_active other")} disabled={isRunning} variant="outline">Change Slot (A↔B)</Button>
-                  <Button onClick={() => handleStreamSidecar("fastboot", ["-w"], "t_fb_wipe", "-w")} disabled={isRunning} variant="destructive">Format Data (-w)</Button>
-                </CardContent>
-              </Card>
+                  {/* Quick Actions Row */}
+                  <div className="flex items-center gap-4">
+                    <span className="w-20 text-sm font-medium text-slate-400">Quick:</span>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button className="bg-orange-500 hover:bg-orange-600 text-white border-none shadow-sm" disabled={isRunning} onClick={() => handleStreamSidecar("fastboot", ["flashing", "unlock"], "t_ul", "flashing unlock")}>
+                        <svg className="h-3.5 w-3.5 mr-1.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Flashing Unlock
+                      </Button>
+                      <Button className="bg-orange-500 hover:bg-orange-600 text-white border-none shadow-sm" disabled={isRunning} onClick={() => handleStreamSidecar("fastboot", ["oem", "unlock-go"], "t_ul", "oem unlock-go")}>
+                        <ShieldCheck className="h-3.5 w-3.5 mr-1.5"/> OEM Unlock-Go
+                      </Button>
+                      <Button className="bg-indigo-500 hover:bg-indigo-600 text-white border-none shadow-sm" disabled={isRunning} onClick={() => handleStreamSidecar("fastboot", ["set_active", "other"], "t_slot", "set_active other")}>
+                        <svg className="h-3.5 w-3.5 mr-1.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 14 5-5-5-5"/><path d="m9 10-5 5 5 5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0"/><path d="M4 15h10.5a5.5 5.5 0 0 0 5.5-5.5v0"/></svg> Change Slot
+                      </Button>
+                      <Button className="bg-red-500 hover:bg-red-600 text-white border-none shadow-sm" disabled={isRunning} onClick={() => handleStreamSidecar("fastboot", ["-w"], "t_format", "-w")}>
+                        <svg className="h-3.5 w-3.5 mr-1.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Format Data
+                      </Button>
+                    </div>
+                  </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Flash Partition</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <div className="flex gap-2 items-center">
-                    <select
-                      value={flashPartition}
+                  {/* Flash Row */}
+                  <div className="flex items-center gap-4">
+                    <span className="w-20 text-sm font-medium text-slate-400">Flash:</span>
+                    <select 
+                      value={flashPartition} 
                       onChange={(e) => setFlashPartition(e.target.value)}
-                      className="flex-1 rounded-md border bg-background px-3 py-2 text-sm outline-none"
+                      className="w-[180px] bg-[#222532] border border-slate-700 text-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
                     >
                       <option value="boot">boot</option>
                       <option value="vendor_boot">vendor_boot</option>
@@ -402,39 +460,45 @@ export default function App() {
                       <option value="system">system</option>
                     </select>
                     
-                    <div className="flex items-center gap-2">
-                      <input type="checkbox" id="disable-verity" checked={disableVerity} onChange={(e) => setDisableVerity(e.target.checked)} />
-                      <label htmlFor="disable-verity" className="text-sm">Disable Verity</label>
+                    <div className="flex-1 relative">
+                       <Input 
+                         placeholder="No file..." 
+                         value={flashFile} 
+                         onChange={(e) => setFlashFile(e.target.value)} 
+                         className="bg-[#222532] border-slate-700 pr-10 text-slate-200 placeholder:text-slate-600 focus-visible:ring-cyan-500 h-[38px]"
+                       />
+                       <button className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+                       </button>
+                    </div>
+
+                    <div className="flex gap-2">
+                       <Button variant="outline" className="bg-purple-600/20 text-purple-400 border-purple-500/50 hover:bg-purple-600/40">
+                         <svg className="h-4 w-4 mr-1.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg> File
+                       </Button>
+                       <Button onClick={handleFlash} disabled={isRunning || !flashFile} className="bg-emerald-500 hover:bg-emerald-600 text-white min-w-[100px] shadow-md border-none">
+                         <Zap className="h-4 w-4 mr-1.5" fill="currentColor"/> Flash
+                       </Button>
                     </div>
                   </div>
                   
-                  <div className="flex gap-2">
-                    <Input 
-                      placeholder="Select image file..."
-                      value={flashFile}
-                      onChange={(e) => setFlashFile(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button onClick={handleFlash} disabled={isRunning || !flashFile}>
-                      Flash Image
-                    </Button>
+                  {/* Raw Command */}
+                  <div className="flex gap-2 mt-4 items-center">
+                     <div className="bg-red-500 text-white px-3 py-2 rounded-md font-bold text-sm tracking-wide flex items-center justify-center">
+                       fastboot
+                     </div>
+                     <Input
+                        value={fbShellCmd}
+                        onChange={(e) => setFbShellCmd(e.target.value)}
+                        placeholder="command..."
+                        className="flex-1 bg-[#222532] border-slate-700 text-slate-200 placeholder:text-slate-600 focus-visible:ring-cyan-500 h-[40px]"
+                        onKeyDown={(e) => e.key === "Enter" && handleFbShell()}
+                      />
+                      <Button onClick={handleFbShell} disabled={isRunning || !fbShellCmd} className="bg-red-500 hover:bg-red-600 text-white px-6 h-[40px] font-bold tracking-wide border-none">
+                         Run
+                      </Button>
                   </div>
-                </CardContent>
-              </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Raw Fastboot Command</CardTitle>
-                </CardHeader>
-                <CardContent className="flex gap-2">
-                  <Input
-                    value={fbShellCmd}
-                    onChange={(e) => setFbShellCmd(e.target.value)}
-                    placeholder="e.g. erase boot"
-                    className="flex-1"
-                    onKeyDown={(e) => e.key === "Enter" && handleFbShell()}
-                  />
-                  <Button onClick={handleFbShell} disabled={isRunning || !fbShellCmd}>Run</Button>
                 </CardContent>
               </Card>
             </>
@@ -811,49 +875,70 @@ export default function App() {
               </Card>
             </>
           )}
+          </div>
         </div>
 
-        {/* Right: Terminal */}
-        <Card className="flex h-full flex-col">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <div className="flex items-center gap-2">
-              <TerminalIcon className="h-5 w-5" />
-              <CardTitle className="text-md">Terminal Log</CardTitle>
+        {/* Bottom: Terminal Log Window */}
+        <div className="flex-[2] border-t border-slate-800 bg-[#0c0d14] flex flex-col min-h-[300px]">
+          <div className="flex items-center justify-between border-b border-slate-800 bg-[#161925] px-4 py-2">
+            <div className="flex items-center gap-2 font-semibold text-slate-300 tracking-wide text-sm">
+              <TerminalIcon className="h-4 w-4 text-cyan-500" />
+              TERMINAL
             </div>
-            <Button variant="ghost" size="sm" onClick={clearTerminal}>
-              Clear
-            </Button>
-          </CardHeader>
-          <CardContent className="flex-1 overflow-hidden p-2 pt-0 h-full">
-            <ScrollArea
-              className="h-full w-full rounded-md bg-black/50 p-4 font-mono text-sm"
-              ref={scrollRef}
-            >
-              {logs.length === 0 ? (
-                <div className="text-muted-foreground italic">
-                  Waiting for commands...
-                </div>
-              ) : (
-                logs.map((log, i) => (
-                  <div key={i} className="mb-1 leading-tight break-all">
-                    <span className="text-muted-foreground mr-2">[{log.ts}]</span>
-                    <span
-                      className={
-                        log.level === "error"
-                          ? "text-destructive"
-                          : log.level === "cmd"
-                          ? "text-info"
-                          : "text-foreground"
-                      }
-                    >
-                      {log.text}
-                    </span>
+            <div className="flex gap-3">
+               <button className="text-slate-500 hover:text-white transition-colors" title="Copy Logs">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+               </button>
+               <button onClick={clearTerminal} className="text-slate-500 hover:text-white transition-colors" title="Clear Logs">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+               </button>
+            </div>
+          </div>
+          
+          <ScrollArea ref={scrollRef} className="flex-1 p-4 font-mono text-[13px] leading-relaxed">
+            {logs.length === 0 ? (
+              <div className="text-slate-600 italic">No output yet. Connect a device and run a command.</div>
+            ) : (
+              <div className="flex flex-col gap-1">
+                {logs.map((log, idx) => (
+                  <div key={idx} className="break-all flex gap-3">
+                    <span className="text-slate-500 shrink-0">[{log.ts}]</span>
+                    {log.level === "cmd" && (
+                      <span className="text-cyan-400 font-bold">› {log.text}</span>
+                    )}
+                    {log.level === "error" && (
+                      <span className="text-red-400">✗ {log.text}</span>
+                    )}
+                    {log.level === "warning" && (
+                      <span className="text-orange-400">⚠ {log.text}</span>
+                    )}
+                    {log.level === "info" && (
+                      <span className="text-slate-300">
+                        {log.text.startsWith("Finished. Total time") ? (
+                           <div className="flex flex-col">
+                             <span className="text-slate-300">● {log.text}</span>
+                             <span className="text-emerald-400 font-bold flex items-center gap-2 mt-1">
+                               <CheckCircle2 className="h-3.5 w-3.5" /> OK
+                             </span>
+                           </div>
+                        ) : log.text.includes("Error:") || log.text.includes("FAILED") ? (
+                           <div className="flex flex-col">
+                             <span className="text-slate-300">● {log.text}</span>
+                             <span className="text-red-400 font-bold flex items-center gap-2 mt-1">
+                               <XCircle className="h-3.5 w-3.5" /> FAILED
+                             </span>
+                           </div>
+                        ) : (
+                           <span>● {log.text}</span>
+                        )}
+                      </span>
+                    )}
                   </div>
-                ))
-              )}
-            </ScrollArea>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </div>
       </div>
     </div>
   );
