@@ -11,7 +11,7 @@ import {
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { ScrollArea } from "./components/ui/scroll-area";
-import { Terminal as TerminalIcon, Zap, Smartphone, Activity } from "lucide-react";
+import { Terminal as TerminalIcon, Zap, Smartphone, Activity, Cpu } from "lucide-react";
 
 interface TerminalEvent {
   taskId: string;
@@ -22,7 +22,7 @@ interface TerminalEvent {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"adb" | "fastboot" | "flash" | "unlock" | "program" | "tools">("adb");
+  const [activeTab, setActiveTab] = useState<"adb" | "fastboot" | "flash" | "unlock" | "program" | "tools" | "mtk" | "qcom" | "sam">("adb");
   const [logs, setLogs] = useState<TerminalEvent[]>([]);
   const [shellCmd, setShellCmd] = useState("");
   const [fbShellCmd, setFbShellCmd] = useState("");
@@ -248,6 +248,16 @@ export default function App() {
           </Button>
           <Button variant={activeTab === "tools" ? "default" : "outline"} onClick={() => setActiveTab("tools")} size="sm">
             Tools
+          </Button>
+          <div className="w-px h-6 bg-border mx-1 self-center"></div>
+          <Button variant={activeTab === "mtk" ? "default" : "outline"} onClick={() => setActiveTab("mtk")} size="sm">
+            MediaTek
+          </Button>
+          <Button variant={activeTab === "qcom" ? "default" : "outline"} onClick={() => setActiveTab("qcom")} size="sm">
+            Qualcomm
+          </Button>
+          <Button variant={activeTab === "sam" ? "default" : "outline"} onClick={() => setActiveTab("sam")} size="sm">
+            Samsung
           </Button>
         </div>
 
@@ -620,6 +630,82 @@ export default function App() {
                 <CardContent className="grid grid-cols-2 gap-2">
                    <Button variant="outline" onClick={() => handleStreamSidecar("adb", ["pull", "/dev/block/bootdevice/by-name/persist", "persist.img"], "t_tools", "adb pull persist")}>Backup Persist (Needs Root)</Button>
                    <Button variant="outline" onClick={() => handleStreamSidecar("adb", ["pull", "/dev/block/bootdevice/by-name/modemst1", "modemst1.img"], "t_tools", "adb pull modemst1")}>Backup EFS (Needs Root)</Button>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {activeTab === "mtk" && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Cpu className="h-5 w-5"/> MediaTek (BROM / Preloader)</CardTitle>
+                  <CardDescription>Bypass SLA/DA and flash scatter firmware directly to MTK devices.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="flex gap-2">
+                    <Button variant="default" onClick={() => addLog("Waiting for MTK device in BROM mode (Hold Vol+ and Vol- while inserting USB)...", "cmd", "t_mtk")} className="flex-1">Auth Bypass (SLA/DA)</Button>
+                    <Button variant="outline" onClick={() => addLog("Scanning for MTK Preloader VCOM port...", "info", "t_mtk")} className="flex-1">Read Partitions</Button>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input placeholder="Select Scatter File (MTxxxx_Android_scatter.txt)..." />
+                    <Button variant="secondary">Load Scatter</Button>
+                  </div>
+                  <Button variant="destructive">Flash Firmware</Button>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {activeTab === "qcom" && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Cpu className="h-5 w-5"/> Qualcomm (EDL / Firehose)</CardTitle>
+                  <CardDescription>Flash QFIL firmware using rawprogram and patch XMLs via 9008 mode.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="flex-1" onClick={() => addLog("Waiting for Qualcomm HS-USB QDLoader 9008...", "cmd", "t_qcom")}>Ping EDL (9008)</Button>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input placeholder="Select Programmer (prog_firehose_ddr.elf)..." />
+                    <Button variant="secondary">Load Programmer</Button>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input placeholder="Select rawprogram0.xml..." />
+                    <Input placeholder="Select patch0.xml..." />
+                  </div>
+                  <Button variant="destructive">Flash XML Firmware</Button>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {activeTab === "sam" && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Cpu className="h-5 w-5"/> Samsung (Download Mode)</CardTitle>
+                  <CardDescription>Odin/Heimdall style flashing for Samsung devices in Download Mode.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => addLog("Detecting device in Download Mode...", "cmd", "t_sam")} className="w-full">Detect Device</Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input placeholder="BL (Bootloader)..." />
+                    <Input placeholder="AP (System)..." />
+                    <Input placeholder="CP (Modem)..." />
+                    <Input placeholder="CSC (Carrier)..." />
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                     <input type="checkbox" id="auto-reboot" defaultChecked />
+                     <label htmlFor="auto-reboot" className="text-sm">Auto Reboot</label>
+                     <input type="checkbox" id="nand-erase" />
+                     <label htmlFor="nand-erase" className="text-sm">NAND Erase All</label>
+                  </div>
+                  <Button variant="destructive">Start Flash</Button>
                 </CardContent>
               </Card>
             </>
