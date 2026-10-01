@@ -35,6 +35,7 @@ export default function App() {
   const [firmwareDir, setFirmwareDir] = useState("");
   const [flashPlan, setFlashPlan] = useState<{name: string, status: string}[]>([]);
   const [currentStep, setCurrentStep] = useState(-1);
+  const [unlockSidebarTab, setUnlockSidebarTab] = useState("general");
 
   // Phase 5 State
   const [unlockToken, setUnlockToken] = useState("");
@@ -276,12 +277,9 @@ export default function App() {
         {[
           { id: "adb", label: "ADB & Fastboot", icon: Activity },
           { id: "flash", label: "Firmware", icon: DownloadCloud },
-          { id: "unlock", label: "Unlock & Root", icon: ShieldCheck },
+          { id: "unlock", label: "Unlock & Flash", icon: ShieldCheck },
           { id: "program", label: "Program", icon: Cpu },
           { id: "tools", label: "Tools", icon: TerminalIcon },
-          { id: "mtk", label: "MediaTek", icon: Cpu },
-          { id: "qcom", label: "Qualcomm", icon: Cpu },
-          { id: "sam", label: "Samsung", icon: Smartphone },
           { id: "account", label: "Account", icon: UserCircle },
         ].map((tab) => (
           <button
@@ -640,60 +638,128 @@ export default function App() {
           )}
 
           {activeTab === "unlock" && (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5"/> Bootloader Unlock Wizard</CardTitle>
-                  <CardDescription className="text-warning font-bold">WARNING: Unlocking will wipe all user data!</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="bg-muted px-2 py-1 rounded text-sm w-6 text-center">1</span>
-                    <span className="text-sm">Enable Developer Options and "OEM Unlocking" in Android Settings.</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-muted px-2 py-1 rounded text-sm w-6 text-center">2</span>
-                    <Button variant="outline" size="sm" onClick={() => handleExecuteSidecar("adb", ["reboot", "bootloader"], "t_ul_reboot", "adb reboot bootloader")}>Reboot to Bootloader</Button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-muted px-2 py-1 rounded text-sm w-6 text-center">3</span>
-                    <Button variant="destructive" size="sm" onClick={() => handleStreamSidecar("fastboot", ["flashing", "unlock"], "t_ul_unlock", "fastboot flashing unlock")}>Execute Flashing Unlock</Button>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="flex h-full gap-4">
+              {/* Sidebar */}
+              <div className="w-[200px] flex flex-col gap-1 border-r border-slate-800 pr-4 shrink-0">
+                 {["general", "xiaomi", "mtk", "qcom", "snapdragon"].map((t) => (
+                   <button 
+                     key={t}
+                     onClick={() => setUnlockSidebarTab(t)}
+                     className={`text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${unlockSidebarTab === t ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}`}
+                   >
+                     {t === "general" && "General"}
+                     {t === "xiaomi" && "Xiaomi"}
+                     {t === "mtk" && "Mediatek"}
+                     {t === "qcom" && "Qualcomm"}
+                     {t === "snapdragon" && "Snapdragon"}
+                   </button>
+                 ))}
+              </div>
+              
+              {/* Content */}
+              <div className="flex-1 flex flex-col gap-4">
+                 {unlockSidebarTab === "general" && (
+                   <>
+                     <Card className="bg-[#161925] border-slate-800 shadow-lg">
+                       <CardHeader className="pb-3 border-b border-slate-800/50">
+                         <CardTitle className="flex items-center gap-2 text-white"><ShieldCheck className="h-5 w-5 text-cyan-400"/> General Tools</CardTitle>
+                       </CardHeader>
+                       <CardContent className="pt-4 grid grid-cols-2 gap-3">
+                         <Button variant="outline" className="h-16 flex flex-col items-center justify-center gap-1 bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white" onClick={() => addLog("Opening QFL Tool...", "info", "t_ul")}>
+                           <span className="font-semibold text-sm">QFL TOOL</span>
+                           <span className="text-[10px] text-slate-500">(EDL to Normal)</span>
+                         </Button>
+                         <Button variant="outline" className="h-16 flex flex-col items-center justify-center gap-1 bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white" onClick={() => addLog("Opening ZTE ToolBox...", "info", "t_ul")}>
+                           <span className="font-semibold text-sm">ZTE ToolBox</span>
+                         </Button>
+                         <Button variant="outline" className="h-16 flex flex-col items-center justify-center gap-1 bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white" onClick={() => addLog("Opening UBL Snapdragon Tool...", "info", "t_ul")}>
+                           <span className="font-semibold text-sm">UBL Snapdragon Tool</span>
+                         </Button>
+                         <Button variant="outline" className="h-16 flex flex-col items-center justify-center gap-1 bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white" onClick={() => addLog("Opening Flash Tool...", "info", "t_ul")}>
+                           <span className="font-semibold text-sm">Flash Tool</span>
+                         </Button>
+                       </CardContent>
+                     </Card>
+                     
+                     <Card className="bg-[#161925] border-slate-800 shadow-lg">
+                       <CardHeader className="pb-3 border-b border-slate-800/50">
+                         <CardTitle className="flex items-center gap-2 text-white"><Activity className="h-5 w-5 text-orange-400"/> Bootloader Unlock Wizard</CardTitle>
+                         <CardDescription className="text-orange-500/80">WARNING: Unlocking will wipe all user data!</CardDescription>
+                       </CardHeader>
+                       <CardContent className="pt-4 flex flex-col gap-3">
+                         <div className="flex items-center gap-3">
+                           <span className="bg-slate-800 text-slate-400 px-2 py-1 rounded text-xs font-bold w-6 text-center border border-slate-700">1</span>
+                           <span className="text-sm text-slate-300">Enable Developer Options and "OEM Unlocking" in Android Settings.</span>
+                         </div>
+                         <div className="flex items-center gap-3">
+                           <span className="bg-slate-800 text-slate-400 px-2 py-1 rounded text-xs font-bold w-6 text-center border border-slate-700">2</span>
+                           <Button variant="outline" size="sm" className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700" onClick={() => handleExecuteSidecar("adb", ["reboot", "bootloader"], "t_ul_reboot", "adb reboot bootloader")}>Reboot to Bootloader</Button>
+                         </div>
+                         <div className="flex items-center gap-3">
+                           <span className="bg-slate-800 text-slate-400 px-2 py-1 rounded text-xs font-bold w-6 text-center border border-slate-700">3</span>
+                           <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white border-none" onClick={() => handleStreamSidecar("fastboot", ["flashing", "unlock"], "t_ul_unlock", "fastboot flashing unlock")}>Execute Flashing Unlock</Button>
+                         </div>
+                       </CardContent>
+                     </Card>
+                   </>
+                 )}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Token-Based Unlock (Vendor Specific)</CardTitle>
-                </CardHeader>
-                <CardContent className="flex gap-2">
-                  <Input 
-                    placeholder="Enter unlock token file or code..." 
-                    value={unlockToken} 
-                    onChange={(e) => setUnlockToken(e.target.value)} 
-                    className="flex-1" 
-                  />
-                  <Button disabled={!unlockToken} onClick={() => handleStreamSidecar("fastboot", ["flash", "unlock", unlockToken], "t_ul_token", `fastboot flash unlock ${unlockToken}`)}>Flash Token</Button>
-                </CardContent>
-              </Card>
+                 {unlockSidebarTab === "xiaomi" && (
+                   <div className="flex items-center justify-center h-40 text-slate-500 text-sm italic bg-[#161925] border border-slate-800 rounded-lg">
+                     Xiaomi tools will be added later...
+                   </div>
+                 )}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Custom Recovery / Magisk Patcher</CardTitle>
-                  <CardDescription>Quick flash for patched boot or custom recovery images.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-2">
-                   <div className="flex gap-2">
-                     <Button className="flex-1" variant="secondary" onClick={() => addLog("Please use the file picker (coming soon) to select your recovery.img.", "info", "t_ul_helper")}>Select recovery.img</Button>
-                     <Button disabled>Flash Recovery</Button>
+                 {unlockSidebarTab === "mtk" && (
+                   <Card className="bg-[#161925] border-slate-800 shadow-lg">
+                     <CardHeader className="pb-3 border-b border-slate-800/50">
+                       <CardTitle className="flex items-center gap-2 text-white"><Cpu className="h-5 w-5 text-cyan-400"/> MediaTek (BROM / Preloader)</CardTitle>
+                       <CardDescription className="text-slate-500 text-xs">Bypass SLA/DA and flash scatter firmware directly to MTK devices.</CardDescription>
+                     </CardHeader>
+                     <CardContent className="pt-4 flex flex-col gap-4">
+                       <div className="flex gap-2">
+                         <Button variant="default" className="bg-cyan-500 hover:bg-cyan-600 text-white flex-1 border-none shadow-md" onClick={() => addLog("Waiting for MTK device in BROM mode (Hold Vol+ and Vol- while inserting USB)...", "cmd", "t_mtk")}>Auth Bypass (SLA/DA)</Button>
+                         <Button variant="outline" className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 flex-1" onClick={() => addLog("Scanning for MTK Preloader VCOM port...", "info", "t_mtk")}>Read Partitions</Button>
+                       </div>
+                       <div className="flex gap-2">
+                         <Input placeholder="Select Scatter File (MTxxxx_Android_scatter.txt)..." className="bg-[#222532] border-slate-700 text-slate-200 placeholder:text-slate-600 focus-visible:ring-cyan-500" />
+                         <Button variant="secondary" className="bg-purple-600 hover:bg-purple-700 text-white border-none shadow-sm">Load Scatter</Button>
+                       </div>
+                       <Button variant="destructive" className="bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-md">Flash Firmware</Button>
+                     </CardContent>
+                   </Card>
+                 )}
+
+                 {unlockSidebarTab === "qcom" && (
+                   <Card className="bg-[#161925] border-slate-800 shadow-lg">
+                     <CardHeader className="pb-3 border-b border-slate-800/50">
+                       <CardTitle className="flex items-center gap-2 text-white"><Cpu className="h-5 w-5 text-purple-400"/> Qualcomm (EDL / Firehose)</CardTitle>
+                       <CardDescription className="text-slate-500 text-xs">Flash QFIL firmware using rawprogram and patch XMLs via 9008 mode.</CardDescription>
+                     </CardHeader>
+                     <CardContent className="pt-4 flex flex-col gap-4">
+                       <div className="flex gap-2">
+                         <Button variant="outline" className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 flex-1" onClick={() => addLog("Waiting for Qualcomm HS-USB QDLoader 9008...", "cmd", "t_qcom")}>Ping EDL (9008)</Button>
+                       </div>
+                       <div className="flex gap-2">
+                         <Input placeholder="Select Programmer (prog_firehose_ddr.elf)..." className="bg-[#222532] border-slate-700 text-slate-200 placeholder:text-slate-600 focus-visible:ring-cyan-500" />
+                         <Button variant="secondary" className="bg-purple-600 hover:bg-purple-700 text-white border-none shadow-sm">Load Programmer</Button>
+                       </div>
+                       <div className="flex gap-2">
+                         <Input placeholder="Select rawprogram0.xml..." className="bg-[#222532] border-slate-700 text-slate-200 placeholder:text-slate-600 focus-visible:ring-cyan-500" />
+                         <Input placeholder="Select patch0.xml..." className="bg-[#222532] border-slate-700 text-slate-200 placeholder:text-slate-600 focus-visible:ring-cyan-500" />
+                       </div>
+                       <Button variant="destructive" className="bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-md">Flash XML Firmware</Button>
+                     </CardContent>
+                   </Card>
+                 )}
+
+                 {unlockSidebarTab === "snapdragon" && (
+                   <div className="flex items-center justify-center h-40 text-slate-500 text-sm italic bg-[#161925] border border-slate-800 rounded-lg">
+                     Snapdragon tools will be added later...
                    </div>
-                   <div className="flex gap-2">
-                     <Button className="flex-1" variant="secondary" onClick={() => addLog("Please use the file picker (coming soon) to select your magisk_patched.img.", "info", "t_ul_helper")}>Select magisk_boot.img</Button>
-                     <Button disabled>Flash Boot</Button>
-                   </div>
-                </CardContent>
-              </Card>
-            </>
+                 )}
+              </div>
+            </div>
           )}
 
           {activeTab === "program" && (
@@ -791,81 +857,6 @@ export default function App() {
             </>
           )}
 
-          {activeTab === "mtk" && (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Cpu className="h-5 w-5"/> MediaTek (BROM / Preloader)</CardTitle>
-                  <CardDescription>Bypass SLA/DA and flash scatter firmware directly to MTK devices.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <div className="flex gap-2">
-                    <Button variant="default" onClick={() => addLog("Waiting for MTK device in BROM mode (Hold Vol+ and Vol- while inserting USB)...", "cmd", "t_mtk")} className="flex-1">Auth Bypass (SLA/DA)</Button>
-                    <Button variant="outline" onClick={() => addLog("Scanning for MTK Preloader VCOM port...", "info", "t_mtk")} className="flex-1">Read Partitions</Button>
-                  </div>
-                  <div className="flex gap-2">
-                    <Input placeholder="Select Scatter File (MTxxxx_Android_scatter.txt)..." />
-                    <Button variant="secondary">Load Scatter</Button>
-                  </div>
-                  <Button variant="destructive">Flash Firmware</Button>
-                </CardContent>
-              </Card>
-            </>
-          )}
-
-          {activeTab === "qcom" && (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Cpu className="h-5 w-5"/> Qualcomm (EDL / Firehose)</CardTitle>
-                  <CardDescription>Flash QFIL firmware using rawprogram and patch XMLs via 9008 mode.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1" onClick={() => addLog("Waiting for Qualcomm HS-USB QDLoader 9008...", "cmd", "t_qcom")}>Ping EDL (9008)</Button>
-                  </div>
-                  <div className="flex gap-2">
-                    <Input placeholder="Select Programmer (prog_firehose_ddr.elf)..." />
-                    <Button variant="secondary">Load Programmer</Button>
-                  </div>
-                  <div className="flex gap-2">
-                    <Input placeholder="Select rawprogram0.xml..." />
-                    <Input placeholder="Select patch0.xml..." />
-                  </div>
-                  <Button variant="destructive">Flash XML Firmware</Button>
-                </CardContent>
-              </Card>
-            </>
-          )}
-
-          {activeTab === "sam" && (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Cpu className="h-5 w-5"/> Samsung (Download Mode)</CardTitle>
-                  <CardDescription>Odin/Heimdall style flashing for Samsung devices in Download Mode.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => addLog("Detecting device in Download Mode...", "cmd", "t_sam")} className="w-full">Detect Device</Button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input placeholder="BL (Bootloader)..." />
-                    <Input placeholder="AP (System)..." />
-                    <Input placeholder="CP (Modem)..." />
-                    <Input placeholder="CSC (Carrier)..." />
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                     <input type="checkbox" id="auto-reboot" defaultChecked />
-                     <label htmlFor="auto-reboot" className="text-sm">Auto Reboot</label>
-                     <input type="checkbox" id="nand-erase" />
-                     <label htmlFor="nand-erase" className="text-sm">NAND Erase All</label>
-                  </div>
-                  <Button variant="destructive">Start Flash</Button>
-                </CardContent>
-              </Card>
-            </>
-          )}
 
           {activeTab === "account" && (
             <>
