@@ -11,7 +11,7 @@ import {
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { ScrollArea } from "./components/ui/scroll-area";
-import { Terminal as TerminalIcon, Zap, Smartphone, Activity, Cpu } from "lucide-react";
+import { Terminal as TerminalIcon, Zap, Smartphone, Activity, Cpu, UserCircle, ShieldCheck, DownloadCloud } from "lucide-react";
 
 interface TerminalEvent {
   taskId: string;
@@ -22,7 +22,7 @@ interface TerminalEvent {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"adb" | "fastboot" | "flash" | "unlock" | "program" | "tools" | "mtk" | "qcom" | "sam">("adb");
+  const [activeTab, setActiveTab] = useState<"adb" | "fastboot" | "flash" | "unlock" | "program" | "tools" | "mtk" | "qcom" | "sam" | "account">("adb");
   const [logs, setLogs] = useState<TerminalEvent[]>([]);
   const [shellCmd, setShellCmd] = useState("");
   const [fbShellCmd, setFbShellCmd] = useState("");
@@ -40,6 +40,11 @@ export default function App() {
   const [unlockToken, setUnlockToken] = useState("");
   const [payloadFile, setPayloadFile] = useState("");
   const [scatterFile, setScatterFile] = useState("");
+
+  // Phase 7 State
+  const [licenseKey, setLicenseKey] = useState("");
+  const [isLicensed, setIsLicensed] = useState(false);
+  const [optInTelemetry, setOptInTelemetry] = useState(true);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -148,6 +153,10 @@ export default function App() {
     setIsRunning(true);
     addLog("--- STARTED FIRMWARE FLASH JOB ---", "info", "t_engine");
     
+    if (!isLicensed) {
+      addLog("WARNING: Running in unlicensed trial mode. Some features may be rate-limited.", "warning", "t_engine");
+    }
+
     let updatedPlan = [...flashPlan];
     
     for (let i = 0; i < updatedPlan.length; i++) {
@@ -170,6 +179,10 @@ export default function App() {
     
     // Log history to simulated SQLite
     addLog("Job history logged to SQLite database.", "info", "t_engine");
+    
+    if (optInTelemetry) {
+      addLog("Anonymous flash success metrics sent to telemetry server.", "info", "t_engine");
+    }
   };
 
   // ADB Commands
@@ -261,9 +274,14 @@ export default function App() {
           </Button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-success"></div>
-          <span className="text-sm text-muted-foreground">Device Connected</span>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setActiveTab("account")} className={activeTab === "account" ? "bg-accent" : ""}>
+             <UserCircle className={isLicensed ? "text-success" : "text-muted-foreground"} />
+          </Button>
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-success"></div>
+            <span className="text-sm text-muted-foreground">Device Connected</span>
+          </div>
         </div>
       </header>
 
@@ -706,6 +724,89 @@ export default function App() {
                      <label htmlFor="nand-erase" className="text-sm">NAND Erase All</label>
                   </div>
                   <Button variant="destructive">Start Flash</Button>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {activeTab === "account" && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5"/> Software License</CardTitle>
+                  <CardDescription>Activate TechFlash Pro using your hardware-bound license key.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  {isLicensed ? (
+                    <div className="bg-success/20 text-success p-3 rounded border border-success/50 flex items-center justify-between">
+                       <span><strong>Pro License Active</strong> (Hardware Bound)</span>
+                       <Button size="sm" variant="outline" onClick={() => setIsLicensed(false)}>Deactivate</Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input 
+                        placeholder="Enter License Key (e.g. TF-XXXX-XXXX-XXXX)..." 
+                        value={licenseKey}
+                        onChange={(e) => setLicenseKey(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button onClick={() => { if(licenseKey) { setIsLicensed(true); addLog("License successfully bound to hardware signature.", "info", "t_auth"); } }}>Activate Key</Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><DownloadCloud className="h-5 w-5"/> Updates & Telemetry</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="font-semibold text-sm">Release Channel</h4>
+                      <p className="text-sm text-muted-foreground">Receive stable updates or beta tests.</p>
+                    </div>
+                    <select className="rounded border bg-background px-3 py-1 text-sm outline-none">
+                      <option>Stable (Recommended)</option>
+                      <option>Beta (Cutting Edge)</option>
+                    </select>
+                  </div>
+                  
+                  <div className="flex justify-between items-center mt-2">
+                    <Button variant="secondary" onClick={() => addLog("Checking for updates... TechFlash is up to date (v1.0.2).", "info", "t_updater")}>Check for Updates</Button>
+                    <Button variant="secondary" onClick={() => addLog("Syncing latest remote device-profile database... Done.", "info", "t_updater")}>Sync Device DB</Button>
+                  </div>
+
+                  <div className="border-t pt-4 mt-2">
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" id="telemetry" checked={optInTelemetry} onChange={(e) => setOptInTelemetry(e.target.checked)} />
+                      <label htmlFor="telemetry" className="text-sm">Allow anonymous crash reporting and telemetry (No device identifiers are collected).</label>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>What's New (Changelog)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[120px] bg-muted/30 p-4 rounded text-sm">
+                    <strong>v1.0.2</strong>
+                    <ul className="list-disc ml-5 mb-3 text-muted-foreground">
+                      <li>Added Phase 7 Account, Licensing, and Telemetry features.</li>
+                      <li>Added hardware-bound licensing verification.</li>
+                    </ul>
+                    <strong>v1.0.1</strong>
+                    <ul className="list-disc ml-5 mb-3 text-muted-foreground">
+                      <li>Added Qualcomm, MediaTek, and Samsung brand-specific flash modules.</li>
+                      <li>Refactored UI Tabs for better scalability.</li>
+                    </ul>
+                    <strong>v1.0.0</strong>
+                    <ul className="list-disc ml-5 text-muted-foreground">
+                      <li>Initial Release with standard ADB and Fastboot Task Engine.</li>
+                    </ul>
+                  </ScrollArea>
                 </CardContent>
               </Card>
             </>
